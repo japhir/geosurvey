@@ -7,17 +7,19 @@
 * read in the data
 #+begin_src R :results none
   library(tidyverse)
-  dat <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
+  raw <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
                   trim_ws = TRUE, col_names = TRUE)
-  dat <- dat |>
+  dat <- raw |>
     tidylog::filter(StartDate != "Start Date") |>
     tidylog::filter(!stringr::str_detect(StartDate, "[{]")) |>
     type_convert(col_types = "TTccidcT?????????????????????????????????????????????????????????????") |>
-    tidylog::mutate(Finished = ifelse(Finished == "True", TRUE, FALSE), Consent = ifelse(Consent == "Yes", TRUE, FALSE))
+    tidylog::mutate(Finished = ifelse(Finished == "True", TRUE, FALSE),
+                    Consent = ifelse(Consent == "Yes", TRUE, FALSE))
 
   glimpse(dat)
 #+end_src
 
+* quick exploratory plots
 ** plot the answers to a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
   dat |>
@@ -43,6 +45,7 @@
 #+RESULTS:
 [[file:imgs/data_collection.png]]
 
+* tidy the data
 ** tidy up all multiselect questions by duplicating the rows and splitting them up
 #+begin_src R :results none
   dat |> distinct(`Data Types`)
@@ -54,12 +57,13 @@ Tidy up the multiselect answers (remove parentheses and commas)
     dat |>
     # get rid of examples
     tidylog::mutate(`Data Types` = str_replace_all(`Data Types`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "machine ,", "machine,")) |>
     tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Data Collection` = str_trim(`Data Collection`)) |>
     # this has Yes, answers everywhere, just replace the , with a :
-    tidylog::mutate(`Data Re-use` = str_replace_all(`Data Re-use`, ",", ":")) |>
+    tidylog::mutate(`Data Re-use` = str_replace_all(`Data Re-use`, "Yes,", "Yes:")) |>
     tidylog::mutate(`Data Backup` = str_replace_all(`Data Backup`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, ", I use", "; I use")) |>
     tidylog::mutate(`Metadata Provided` = str_replace_all(`Metadata Provided`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, ",", ":")) |>
@@ -71,22 +75,12 @@ Tidy up the multiselect answers (remove parentheses and commas)
     tidylog::mutate(`Storage` = str_replace_all(`Storage`, ", namely", "; namely")) |>
     # personal data section skipped, no answers on my end
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, ",", ":"))
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: "))
 
   # doing the actual split results in way too many rows, messing up the counts.
   # Needs to be done separately for each plot?
 #+end_src
-
-** multiselect columns should be clean now
-#+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
-  dat |>
-    separate_rows(`Data Types`, sep = ",") |>
-    ggplot(aes(y=`Data Types`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/data_types.png]]
 
 ** replace NA with hard coded "N/A" for nicer sankey diagrams
 #+begin_src R :results none
@@ -94,7 +88,276 @@ Tidy up the multiselect answers (remove parentheses and commas)
     tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
 #+end_src
 
-** try out sankey diagrams
+** clean up research guidelines
+#+begin_src R :results none
+  distinct(dat, `Research Guidelines`)
+#+end_src
+
+turns out we messed this question up a bit
+#+begin_src R :results none
+  dat <- dat |>
+    mutate(`Research Guidelines` = `Research Guidelines` |>
+             str_replace_all("specific ", "specific") |>
+             str_replace_all("^No$", "No: I don't know any guidelines") |>
+             str_replace_all("^I don't know any guidelines", "No: I don't know any guidelines") |>
+             str_replace_all(",I don't know any guidelines", ",No: I don't know any guidelines"))
+  dat |>
+    distinct(`Research Guidelines`)
+#+end_src
+
+
+* bar graphs for the whole report
+*** Data Types
+#+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Data Types`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/data_types.png]]
+
+*** Data Collection
+#+begin_src R :results output graphics file :file imgs/Data Collection.png :width 600 :height 200
+  dat |>
+    separate_rows(`Data Collection`, sep = ",") |>
+    ggplot(aes(y=`Data Collection`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Data Collection.png]]
+
+*** Data Re-use
+#+begin_src R :results output graphics file :file imgs/Data Re-use.png :width 600 :height 200
+  dat |>
+    separate_rows(`Data Re-use`, sep = ",") |>
+    ggplot(aes(y=`Data Re-use`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Data Re-use.png]]
+
+*** Data Storage
+#+begin_src R :results output graphics file :file imgs/Data Storage.png :width 600 :height 200
+  dat |>
+    separate_rows(`Data Storage`, sep = ",") |>
+    ggplot(aes(y=`Data Storage`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Data Storage.png]]
+
+*** Data Backup
+#+begin_src R :results output graphics file :file imgs/Data Backup.png :width 600 :height 200
+  dat |>
+    separate_rows(`Data Backup`, sep = ",") |>
+    ggplot(aes(y=`Data Backup`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Data Backup.png]]
+
+*** File Structure
+#+begin_src R :results output graphics file :file imgs/File Structure.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`File Structure`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/File Structure.png]]
+
+*** FAIR Application
+#+begin_src R :results output graphics file :file imgs/FAIR Application.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`FAIR Application`, fill = Contact)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/FAIR Application.png]]
+
+*** Storage
+#+begin_src R :results output graphics file :file imgs/Storage.png :width 600 :height 200
+  dat |>
+    separate_rows(`Storage`, sep = ",") |>
+    ggplot(aes(y=`Storage`, fill = Contact)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Storage.png]]
+
+*** Open Data Formats
+#+begin_src R :results output graphics file :file imgs/Open Data Formats.png :width 600 :height 200
+  dat |>
+    separate_rows(`Open Data Formats`, sep = ",") |>
+    ggplot(aes(y=`Open Data Formats`, fill = Contact)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Open Data Formats.png]]
+
+*** Conversion
+#+begin_src R :results output graphics file :file imgs/Conversion.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Conversion`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Conversion.png]]
+
+*** Project Replication
+#+begin_src R :results output graphics file :file imgs/Project Replication.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Project Replication`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Project Replication.png]]
+
+*** Metadata Provided
+#+begin_src R :results output graphics file :file imgs/Metadata Provided.png :width 600 :height 200
+  dat |>
+    separate_rows(`Metadata Provided`, sep = ",") |>
+    ggplot(aes(y=`Metadata Provided`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Metadata Provided.png]]
+
+*** Skip Code
+#+begin_src R :results output graphics file :file imgs/Skip Code.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Skip Code`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Skip Code.png]]
+
+*** Versioning
+#+begin_src R :results output graphics file :file imgs/Versioning.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Versioning`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Versioning.png]]
+
+*** Publication location
+#+begin_src R :results output graphics file :file imgs/Publication location.png :width 600 :height 200
+  dat |>
+    separate_rows(`Publication location`, sep = ",") |>
+    ggplot(aes(y=`Publication location`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Publication location.png]]
+
+*** Code License
+#+begin_src R :results output graphics file :file imgs/Code License.png :width 600 :height 200
+  dat |>
+    separate_rows(`Code License`, sep = ",") |>
+    ggplot(aes(y=`Code License`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Code License.png]]
+
+*** Code DOI
+#+begin_src R :results output graphics file :file imgs/Code DOI.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Code DOI`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Code DOI.png]]
+
+*** Personal Data Bool
+#+begin_src R :results output graphics file :file imgs/Personal Data Bool.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Personal Data Bool`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Personal Data Bool.png]]
+
+*** GDPR Work
+#+begin_src R :results output graphics file :file imgs/GDPR Work.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`GDPR Work`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/GDPR Work.png]]
+
+*** NEXT Privacy Review DPIA
+*** NEXT Personal Training
+*** NEXT Finding Privacy
+*** NEXT Neg Consequences
+*** NEXT Ethic Considerations
+
+*** Research Guidelines
+#+begin_src R :results output graphics file :file imgs/Research Guidelines.png :width 600 :height 200
+  dat |>
+    separate_rows(`Research Guidelines`, sep = ",") |>
+    ggplot(aes(y=`Research Guidelines`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Research Guidelines.png]]
+
+*** Resources for RDM
+#+begin_src R :results output graphics file :file imgs/Resources for RDM.png :width 600 :height 200
+  dat |>
+    separate_rows(`Resources for RDM`, sep = ",") |>
+    ggplot(aes(y=`Resources for RDM`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Resources for RDM.png]]
+
+*** NEXT User Data Mgmt
+*** NEXT Any Questions
+*** Contact
+#+begin_src R :results output graphics file :file imgs/Contact.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Contact`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Contact.png]]
+
+*** Q36
+contact me?
+#+begin_src R :results output graphics file :file imgs/Q36.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=`Q36`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Q36.png]]
+
+* try out sankey diagrams
 #+begin_src R :results output graphics file :file imgs/sankey_data.png :width 1000
   #remotes::install_github("davidsjoberg/ggsankey")
   library(ggsankey)
@@ -174,8 +437,7 @@ Tidy up the multiselect answers (remove parentheses and commas)
 #+RESULTS:
 [[file:imgs/sankey_FAIR_code.png]]
 
-
-** COMMENT try out alluvial
+* COMMENT try out alluvial
 alluvial needs frequencies or numbers in the data
 #+begin_src R
   # install.packages("ggalluvial")
