@@ -5,7 +5,7 @@
 #+property: header-args:R  :session *R:survey* :exports both :results output :eval no-export
 
 * read in the data
-#+begin_src R
+#+begin_src R :results none
   library(tidyverse)
   dat <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
                   trim_ws = TRUE, col_names = TRUE)
@@ -17,92 +17,6 @@
 
   glimpse(dat)
 #+end_src
-
-#+RESULTS:
-#+begin_example
-[1mindexing[0m [34m2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv[0m [] [32m3.71GB/s[0m, eta: [36m 0s[0m                                                                                                                   [1mRows: [22m[34m76[39m [1mColumns: [22m[34m69[39m
-[36m──[39m [1mColumn specification[22m [36m──────────────────────────────────────────────────────────────────────────────────────────────[39m
-[1mDelimiter:[22m ","
-[31mchr[39m (69): StartDate, EndDate, Status, IPAddress, Progress, Duration (in seco...
-
-[36mℹ[39m Use [30m[47m[30m[47m`spec()`[47m[30m[49m[39m to retrieve the full column specification for this data.
-[36mℹ[39m Specify the column types or set [30m[47m[30m[47m`show_col_types = FALSE`[47m[30m[49m[39m to quiet this message.
-filter: removed one row (1%), 75 rows remaining
-filter: removed one row (1%), 74 rows remaining
-mutate: converted 'Finished' from character to logical (0 new NA)
-        converted 'Consent' from character to logical (0 new NA)
-Rows: 74
-Columns: 69
-$ StartDate                     [3m[90m<dttm>[39m[23m 2021-11-11 02:47:13, 2021-11-11 02:47:1…
-$ EndDate                       [3m[90m<dttm>[39m[23m 2021-11-11 02:53:02, 2021-11-11 02:59:4…
-$ Status                        [3m[90m<chr>[39m[23m "IP Address", "IP Address", "IP Address"…
-$ IPAddress                     [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ Progress                      [3m[90m<int>[39m[23m 100, 100, 100, 100, 100, 100, 100, 100, …
-$ `Duration (in seconds)`       [3m[90m<dbl>[39m[23m 349, 748, 719, 968, 475, 625, 439, 399, …
-$ Finished                      [3m[90m<lgl>[39m[23m TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE…
-$ RecordedDate                  [3m[90m<dttm>[39m[23m 2021-11-11 02:53:02, 2021-11-11 02:59:4…
-$ ResponseId                    [3m[90m<chr>[39m[23m "R_1GKqBPi7sB6GHDx", "R_3JF1zv2LLNwox3S"…
-$ RecipientLastName             [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ RecipientFirstName            [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ RecipientEmail                [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ ExternalReference             [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ LocationLatitude              [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ LocationLongitude             [3m[90m<chr>[39m[23m "*******", "*******", "*******", "******…
-$ DistributionChannel           [3m[90m<chr>[39m[23m "anonymous", "anonymous", "anonymous", "…
-$ UserLanguage                  [3m[90m<chr>[39m[23m "EN", "EN", "EN", "EN", "EN", "EN", "EN"…
-$ Consent                       [3m[90m<lgl>[39m[23m TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE…
-$ `Data Types`                  [3m[90m<chr>[39m[23m "Numerical Data (Lab observations, 3D mo…
-$ `Data Collection`             [3m[90m<chr>[39m[23m "Measurements from a machine (e.g. camer…
-$ `Data Collection_6_TEXT`      [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, "collect rock sa…
-$ `Data Re-use`                 [3m[90m<chr>[39m[23m "Yes, from Research Consortiums or Data …
-$ `Data Re-use_5_TEXT`          [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, "From our own pr…
-$ `Data Storage`                [3m[90m<chr>[39m[23m "My computer or Local Storage,OneDrive",…
-$ `Data Storage_8_TEXT`         [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, "Dedicated stora…
-$ `Data Backup`                 [3m[90m<chr>[39m[23m "My storage for ongoing projects in auto…
-$ `Data Backup_3_TEXT`          [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, "EPOS server…
-$ `File Structure`              [3m[90m<chr>[39m[23m "No", "No", "Yes", "No", "No", "Yes", "D…
-$ `FAIR Application`            [3m[90m<chr>[39m[23m "No, I did not know about the FAIR data …
-$ Storage                       [3m[90m<chr>[39m[23m "Supplementary Information to a Paper,Ma…
-$ Storage_5_TEXT                [3m[90m<chr>[39m[23m NA, NA, "Pangaea", "Pangaea Data Reposit…
-$ Storage_6_TEXT                [3m[90m<chr>[39m[23m NA, NA, "Zenodo", NA, "zenodo", NA, "phy…
-$ `Open Data Formats`           [3m[90m<chr>[39m[23m "Yes (e.g., .csv, .txt, .jpeg, .tiff, .o…
-$ `Open Data Formats_3_TEXT`    [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ Conversion                    [3m[90m<chr>[39m[23m "I don't know", "I don't know", "Yes", "…
-$ `Project Replication`         [3m[90m<chr>[39m[23m "Yes, but others may not be able to", "Y…
-$ `Metadata Provided`           [3m[90m<chr>[39m[23m "Title,Time of Data Collection,Basic Key…
-$ `Metadata Provided_10_TEXT`   [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Skip Code`                   [3m[90m<chr>[39m[23m "Yes, in a proprietary programming langu…
-$ Versioning                    [3m[90m<chr>[39m[23m "No, I do not use versioning", "No, I do…
-$ `Publication location`        [3m[90m<chr>[39m[23m "I do not publish my code", "I do not pu…
-$ `Publication location_7_TEXT` [3m[90m<chr>[39m[23m NA, NA, "CRAN", NA, "zenodo", NA, NA, NA…
-$ `Code License`                [3m[90m<chr>[39m[23m NA, "No", "Yes, a Creative Commons (CC) …
-$ `Code License_6_TEXT`         [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Code DOI`                    [3m[90m<chr>[39m[23m "Not Sure", "No", "Yes", "No", "Yes", "Y…
-$ `Personal Data Bool`          [3m[90m<chr>[39m[23m "No", "Yes. I work with other sensitive …
-$ `Personal Data Bool_2_TEXT`   [3m[90m<chr>[39m[23m NA, "meteorites", NA, NA, NA, NA, NA, NA…
-$ `GDPR Work`                   [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Privacy Review DPIA`         [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Sharing Private Data`        [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Sharing Private Data_5_TEXT` [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Personal Training`           [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Finding Privacy`             [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Finding Privacy_9_TEXT`      [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Finding Privacy_10_TEXT`     [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Neg Consequences`            [3m[90m<chr>[39m[23m NA, "I really would not know", "N.a.", "…
-$ `Ethic Considerations`        [3m[90m<chr>[39m[23m NA, "In the case I would acquire these k…
-$ `Research Guidelines`         [3m[90m<chr>[39m[23m NA, "No", "Yes, discipline specific (ple…
-$ `Research Guidelines_1_TEXT`  [3m[90m<chr>[39m[23m NA, NA, "there are many", NA, NA, NA, NA…
-$ `Research Guidelines_2_TEXT`  [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, "EPOS-NL FAI…
-$ `Research Guidelines_3_TEXT`  [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `Resources for RDM`           [3m[90m<chr>[39m[23m "Hands-on Workshops,Lunch & Learn Sessio…
-$ `Resources for RDM_7_TEXT`    [3m[90m<chr>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ `User Data Mgmt`              [3m[90m<chr>[39m[23m NA, "No, I have not developed anything s…
-$ `Any Questions`               [3m[90m<chr>[39m[23m NA, "I have no idea where to even start"…
-$ Contact                       [3m[90m<chr>[39m[23m "PhD candidate", "Professor (Assistant, …
-$ Contact_7_TEXT                [3m[90m<lgl>[39m[23m NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, …
-$ Q36                           [3m[90m<chr>[39m[23m "No", "Yes (please provide your email ad…
-$ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl", NA, NA, NA, NA,…
-#+end_example
 
 ** plot the answers to a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
@@ -129,16 +43,81 @@ $ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl"
 #+RESULTS:
 [[file:imgs/data_collection.png]]
 
+** tidy up all multiselect questions by duplicating the rows and splitting them up
+#+begin_src R :results none
+  dat |> distinct(`Data Types`)
+#+end_src
+
+Tidy up the multiselect answers (remove parentheses and commas)
+#+begin_src R
+  dat <-
+    dat |>
+    # get rid of examples
+    tidylog::mutate(`Data Types` = str_replace_all(`Data Types`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Collection` = str_trim(`Data Collection`)) |>
+    # this has Yes, answers everywhere, just replace the , with a :
+    tidylog::mutate(`Data Re-use` = str_replace_all(`Data Re-use`, ",", ":")) |>
+    tidylog::mutate(`Data Backup` = str_replace_all(`Data Backup`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Metadata Provided` = str_replace_all(`Metadata Provided`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, ",", ":")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "Yes,", "Yes:")) |>
+    # personal data section skipped, no answers on my end
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, ",", ":"))
+
+  # doing the actual split results in way too many rows, messing up the counts.
+  # Needs to be done separately for each plot?
+#+end_src
+
+#+RESULTS:
+#+begin_example
+mutate: changed 57 values (77%) of 'Data Types' (0 new NA)
+mutate: changed 51 values (69%) of 'Data Collection' (0 new NA)
+mutate: changed 10 values (14%) of 'Data Collection' (0 new NA)
+mutate: changed 52 values (70%) of 'Data Re-use' (0 new NA)
+mutate: changed 39 values (53%) of 'Data Backup' (0 new NA)
+mutate: changed 51 values (69%) of 'Open Data Formats' (0 new NA)
+mutate: changed 30 values (41%) of 'Metadata Provided' (0 new NA)
+mutate: changed 47 values (64%) of 'Skip Code' (0 new NA)
+mutate: changed 55 values (74%) of 'Skip Code' (0 new NA)
+mutate: changed 12 values (16%) of 'Code License' (0 new NA)
+mutate: changed 20 values (27%) of 'Code License' (0 new NA)
+mutate: changed 10 values (14%) of 'Research Guidelines' (0 new NA)
+mutate: changed 13 values (18%) of 'Research Guidelines' (0 new NA)
+#+end_example
+
+** multiselect columns should be clean now
+#+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
+  dat |>
+    separate_rows(`Data Types`, sep = ",") |>
+    ggplot(aes(y=`Data Types`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/data_types.png]]
+
+** replace NA with hard coded "N/A" for nicer sankey diagrams
+#+begin_src R :results none
+   dat <- dat |>
+    tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
+#+end_src
+
 ** try out sankey diagrams
 #+begin_src R :results output graphics file :file imgs/sankey_data.png :width 1000
   #remotes::install_github("davidsjoberg/ggsankey")
   library(ggsankey)
 
   dat |>
-    make_long(`Data Types`, `Data Collection`, `Data Re-use`, `Data Storage`, `Data Backup`) |>
+    separate_rows(`Data Collection`, `Data Types`, sep = ",") |>
+    make_long(`Data Types`, `Data Collection`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
-    geom_sankey() +
-    geom_sankey_text(aes(label = str_trunc(node, 20))) +
+    geom_sankey(flow.alpha = .6) +
+    geom_sankey_text(aes(label = str_trunc(node, 30))) +
     theme_sankey() +
     theme(legend.pos = "none")
 #+end_src
@@ -148,8 +127,7 @@ $ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl"
 
 #+begin_src R :results output graphics file :file imgs/sankey_open_data.png :width 800
   dat |>
-    mutate(`Open Data Formats` = ifelse(is.na(`Open Data Formats`), "NA", `Open Data Formats`)) |>
-    mutate(`Conversion` = ifelse(is.na(`Conversion`), "NA", `Conversion`)) |>
+    separate_rows(`Open Data Formats`, `Conversion`, sep = ",") |>
     make_long(`Open Data Formats`, `Conversion`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6, node_color = 1) +
@@ -163,6 +141,7 @@ $ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl"
 
 #+begin_src R :results output graphics file :file imgs/sankey_open_code.png :width 800
   dat |>
+    separate_rows(`Skip Code`, `Versioning`, sep = ",") |>
     make_long(`Skip Code`, `Versioning`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6, node_color = 1) +
@@ -177,6 +156,8 @@ $ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl"
 
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
   dat |>
+    separate_rows(`Publication location`, sep = ",") |>
+    separate_rows(`Code License`, sep = ",") |>
     make_long(Contact, `FAIR Application`, `Skip Code`, `Publication location`, `Code License`, `Code DOI`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6, node_color = 1) +
@@ -190,7 +171,8 @@ $ Q36_1_TEXT                    [3m[90m<chr>[39m[23m NA, "i.l.tenkate@uu.nl"
 
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR.png :width 800
   dat |>
-    tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A"))) |>
+    separate_rows(`Code License`, sep = ",") |>
+    separate_rows(`Versioning`, sep = ",") |>
     make_long(Contact, `Project Replication`, `FAIR Application`, `Skip Code`, Versioning, `Code License`, `Code DOI`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6, node_color = 1) +
