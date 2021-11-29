@@ -4,9 +4,84 @@
 # this sets the properties for all R source code blocks, so they are all related to the session
 #+property: header-args:R  :session *R:survey* :exports both :results output :eval no-export
 
+* TOC
+:PROPERTIES:
+:TOC:      :include all :depth 2
+:END:
+:CONTENTS:
+- [[#toc][TOC]]
+- [[#requirements][requirements]]
+- [[#read-in-the-data][read in the data]]
+- [[#quick-exploratory-plots][quick exploratory plots]]
+  - [[#plot-the-answers-to-a-single-select-question][plot the answers to a single-select question]]
+  - [[#plot-the-answer-to-a-multi-select-question][plot the answer to a multi-select question]]
+- [[#tidy-the-data][tidy the data]]
+  - [[#tidy-up-all-multiselect-answers-so-they-can-be-split-up-if-desired][tidy up all multiselect answers so they can be split up if desired]]
+  - [[#replace-na-with-hard-coded-na-for-nicer-sankey-diagrams][replace NA with hard coded "N/A" for nicer sankey diagrams]]
+  - [[#clean-up-research-guidelines][clean up research guidelines]]
+- [[#bar-graphs-for-the-whole-report][bar graphs for the whole report]]
+  - [[#data-types][Data Types]]
+  - [[#data-collection][Data Collection]]
+  - [[#data-re-use][Data Re-use]]
+  - [[#data-storage][Data Storage]]
+  - [[#data-backup][Data Backup]]
+  - [[#file-structure][File Structure]]
+  - [[#fair-application][FAIR Application]]
+  - [[#storage][Storage]]
+  - [[#open-data-formats][Open Data Formats]]
+  - [[#conversion][Conversion]]
+  - [[#project-replication][Project Replication]]
+  - [[#metadata-provided][Metadata Provided]]
+  - [[#skip-code][Skip Code]]
+  - [[#versioning][Versioning]]
+  - [[#publication-location][Publication location]]
+  - [[#code-license][Code License]]
+  - [[#code-doi][Code DOI]]
+  - [[#personal-data-bool][Personal Data Bool]]
+  - [[#gdpr-work][GDPR Work]]
+  - [[#privacy-review-dpia][Privacy Review DPIA]]
+  - [[#personal-training][Personal Training]]
+  - [[#finding-privacy][Finding Privacy]]
+  - [[#neg-consequences][Neg Consequences]]
+  - [[#ethic-considerations][Ethic Considerations]]
+  - [[#research-guidelines][Research Guidelines]]
+  - [[#resources-for-rdm][Resources for RDM]]
+  - [[#user-data-mgmt][User Data Mgmt]]
+  - [[#any-questions][Any Questions]]
+  - [[#contact][Contact]]
+  - [[#q36][Q36]]
+- [[#try-out-sankey-diagrams][try out sankey diagrams]]
+  - [[#data-types-and-collection][data types and collection]]
+  - [[#open-data][open data]]
+  - [[#code-and-versioning][code and versioning]]
+  - [[#fair-and-storage-grouped-by-level][FAIR and storage, grouped by level]]
+  - [[#fair-and-code--share-location--code-license--doi-by-level][FAIR and code + share location + code license + DOI by level]]
+:END:
+
+* requirements
+This document is written in [[https://www.gnu.org/software/emacs/][emacs']] [[https://orgmode.org/][org-mode]], and is a [[https://en.wikipedia.org/wiki/Literate_programming][literate programme]].
+
+We use a recent (>4.0.0) version of R with many packages in the tidyverse, most importantly ggplot2.
+
+The ggsankey development package is installed from github.
+
+We also tried out ggalluvial, but did not like it as much as the sankey graphs.
+
+We use tidylog in some cases to make sure the transformations are doing what we hope they do. Commands that use this package are prepended with ~tidylog::.~
+
+#+begin_src R
+  # install.packages("tidyverse")
+  library(tidyverse)
+
+  #remotes::install_github("davidsjoberg/ggsankey")
+  library(ggsankey)
+  # install.packages("ggalluvial")
+  ## library(ggalluvial)
+  # install.packages("tidylog")
+#+end_src
+
 * read in the data
 #+begin_src R :results none
-  library(tidyverse)
   raw <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
                   trim_ws = TRUE, col_names = TRUE)
   dat <- raw |>
@@ -46,7 +121,8 @@
 [[file:imgs/data_collection.png]]
 
 * tidy the data
-** tidy up all multiselect questions by duplicating the rows and splitting them up
+** tidy up all multiselect answers so they can be split up if desired
+inspect all unique values in a variable
 #+begin_src R :results none
   dat |> distinct(`Data Types`)
 #+end_src
@@ -77,10 +153,10 @@ Tidy up the multiselect answers (remove parentheses and commas)
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "Yes,", "Yes:")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: "))
-
-  # doing the actual split results in way too many rows, messing up the counts.
-  # Needs to be done separately for each plot?
 #+end_src
+
+Doing the actual split results in way too many rows, messing up the counts.
+Thus it needs to be done separately for each plot?
 
 ** replace NA with hard coded "N/A" for nicer sankey diagrams
 #+begin_src R :results none
@@ -89,11 +165,11 @@ Tidy up the multiselect answers (remove parentheses and commas)
 #+end_src
 
 ** clean up research guidelines
+Turns out we messed this question up a bit
 #+begin_src R :results none
   distinct(dat, `Research Guidelines`)
 #+end_src
 
-turns out we messed this question up a bit
 #+begin_src R :results none
   dat <- dat |>
     mutate(`Research Guidelines` = `Research Guidelines` |>
@@ -105,8 +181,8 @@ turns out we messed this question up a bit
     distinct(`Research Guidelines`)
 #+end_src
 
-
 * bar graphs for the whole report
+headings marked with NEXT are not included here because a bar graph wouldn't be the best visualization there.
 *** Data Types
 #+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
   dat |>
@@ -358,10 +434,8 @@ contact me?
 [[file:imgs/Q36.png]]
 
 * try out sankey diagrams
+** data types and collection
 #+begin_src R :results output graphics file :file imgs/sankey_data.png :width 1000
-  #remotes::install_github("davidsjoberg/ggsankey")
-  library(ggsankey)
-
   dat |>
     separate_rows(`Data Collection`, `Data Types`, sep = ",") |>
     make_long(`Data Types`, `Data Collection`) |>
@@ -375,6 +449,7 @@ contact me?
 #+RESULTS:
 [[file:imgs/sankey_data.png]]
 
+** open data
 #+begin_src R :results output graphics file :file imgs/sankey_open_data.png :width 800
   dat |>
     separate_rows(`Open Data Formats`, `Conversion`, sep = ",") |>
@@ -389,6 +464,7 @@ contact me?
 #+RESULTS:
 [[file:imgs/sankey_open_data.png]]
 
+** code and versioning
 #+begin_src R :results output graphics file :file imgs/sankey_open_code.png :width 800
   dat |>
     separate_rows(`Skip Code`, sep = ",") |>
@@ -404,7 +480,7 @@ contact me?
 #+RESULTS:
 [[file:imgs/sankey_open_code.png]]
 
-
+** FAIR and storage, grouped by level
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR_data.png :width 800
   dat |>
     separate_rows(`Publication location`, sep = ",") |>
@@ -421,6 +497,7 @@ contact me?
 #+RESULTS:
 [[file:imgs/sankey_FAIR_data.png]]
 
+** FAIR and code + share location + code license + DOI by level
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
   dat |>
     separate_rows(`Code License`, sep = ",") |>
@@ -440,8 +517,6 @@ contact me?
 * COMMENT try out alluvial
 alluvial needs frequencies or numbers in the data
 #+begin_src R
-  # install.packages("ggalluvial")
-  library(ggalluvial)
 
   dat |>
     ggplot(aes(axis1 = `Open Data Formats`, axis2 = `Conversion`, y = freq)) +
