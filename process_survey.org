@@ -49,7 +49,7 @@
 #+end_src
 
 Tidy up the multiselect answers (remove parentheses and commas)
-#+begin_src R
+#+begin_src R :results none
   dat <-
     dat |>
     # get rid of examples
@@ -65,6 +65,10 @@ Tidy up the multiselect answers (remove parentheses and commas)
     tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, ",", ":")) |>
     tidylog::mutate(`Code License` = str_replace_all(`Code License`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Code License` = str_replace_all(`Code License`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "No,", "No:")) |>
+    tidylog::mutate(`Storage` = str_replace_all(`Storage`, ", namely", "; namely")) |>
     # personal data section skipped, no answers on my end
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, ",", ":"))
@@ -72,23 +76,6 @@ Tidy up the multiselect answers (remove parentheses and commas)
   # doing the actual split results in way too many rows, messing up the counts.
   # Needs to be done separately for each plot?
 #+end_src
-
-#+RESULTS:
-#+begin_example
-mutate: changed 57 values (77%) of 'Data Types' (0 new NA)
-mutate: changed 51 values (69%) of 'Data Collection' (0 new NA)
-mutate: changed 10 values (14%) of 'Data Collection' (0 new NA)
-mutate: changed 52 values (70%) of 'Data Re-use' (0 new NA)
-mutate: changed 39 values (53%) of 'Data Backup' (0 new NA)
-mutate: changed 51 values (69%) of 'Open Data Formats' (0 new NA)
-mutate: changed 30 values (41%) of 'Metadata Provided' (0 new NA)
-mutate: changed 47 values (64%) of 'Skip Code' (0 new NA)
-mutate: changed 55 values (74%) of 'Skip Code' (0 new NA)
-mutate: changed 12 values (16%) of 'Code License' (0 new NA)
-mutate: changed 20 values (27%) of 'Code License' (0 new NA)
-mutate: changed 10 values (14%) of 'Research Guidelines' (0 new NA)
-mutate: changed 13 values (18%) of 'Research Guidelines' (0 new NA)
-#+end_example
 
 ** multiselect columns should be clean now
 #+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
@@ -117,9 +104,9 @@ mutate: changed 13 values (18%) of 'Research Guidelines' (0 new NA)
     make_long(`Data Types`, `Data Collection`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = .6) +
-    geom_sankey_text(aes(label = str_trunc(node, 30))) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
-    theme(legend.pos = "none")
+    theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
 #+RESULTS:
@@ -130,10 +117,10 @@ mutate: changed 13 values (18%) of 'Research Guidelines' (0 new NA)
     separate_rows(`Open Data Formats`, `Conversion`, sep = ",") |>
     make_long(`Open Data Formats`, `Conversion`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
-    geom_sankey(flow.alpha = 0.6, node_color = 1) +
-    geom_sankey_label(aes(label = node)) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
-    theme(legend.pos = "none")
+    theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
 #+RESULTS:
@@ -141,48 +128,51 @@ mutate: changed 13 values (18%) of 'Research Guidelines' (0 new NA)
 
 #+begin_src R :results output graphics file :file imgs/sankey_open_code.png :width 800
   dat |>
-    separate_rows(`Skip Code`, `Versioning`, sep = ",") |>
+    separate_rows(`Skip Code`, sep = ",") |>
+    separate_rows(`Versioning`, sep = ",") |>
     make_long(`Skip Code`, `Versioning`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
-    geom_sankey(flow.alpha = 0.6, node_color = 1) +
-    geom_sankey_label(aes(label = node)) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
-    theme(legend.pos = "none")
+    theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
 #+RESULTS:
 [[file:imgs/sankey_open_code.png]]
 
 
-#+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
+#+begin_src R :results output graphics file :file imgs/sankey_FAIR_data.png :width 800
   dat |>
     separate_rows(`Publication location`, sep = ",") |>
     separate_rows(`Code License`, sep = ",") |>
-    make_long(Contact, `FAIR Application`, `Skip Code`, `Publication location`, `Code License`, `Code DOI`) |>
+    separate_rows(`Storage`, sep = ",") |>
+    make_long(`FAIR Application`, `Storage`, Contact) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
-    geom_sankey(flow.alpha = 0.6, node_color = 1) +
-    geom_sankey_text(aes(label = node), size = 3.5, angle = 45, hjust = 0) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
-    theme(legend.pos = "none")
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_FAIR_data.png]]
+
+#+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
+  dat |>
+    separate_rows(`Code License`, sep = ",") |>
+    separate_rows(`Versioning`, sep = ",") |>
+    separate_rows(`Publication location`, sep = ",") |>
+    make_long(`FAIR Application`, `Skip Code`, `Publication location`, `Code License`, `Code DOI`, Contact) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), size = 3.5, hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
 #+RESULTS:
 [[file:imgs/sankey_FAIR_code.png]]
-
-#+begin_src R :results output graphics file :file imgs/sankey_FAIR.png :width 800
-  dat |>
-    separate_rows(`Code License`, sep = ",") |>
-    separate_rows(`Versioning`, sep = ",") |>
-    make_long(Contact, `Project Replication`, `FAIR Application`, `Skip Code`, Versioning, `Code License`, `Code DOI`) |>
-    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
-    geom_sankey(flow.alpha = 0.6, node_color = 1) +
-    geom_sankey_text(aes(label = node), size = 3.5, angle = 30, hjust = 0) +
-    theme_sankey() +
-    theme(legend.pos = "none")
-#+end_src
-
-#+RESULTS:
-[[file:imgs/sankey_FAIR.png]]
 
 
 ** COMMENT try out alluvial
