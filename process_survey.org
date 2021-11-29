@@ -2,9 +2,13 @@
 #+author: Ilja Kocken
 
 # this sets the properties for all R source code blocks, so they are all related to the session
-#+property: header-args:R  :session *R:survey* :exports both :results output :eval no-export
+#+property: header-args:R  :session *R:survey* :exports results :results output :eval no-export
 
-* TOC
+# a nice simple black-and-white theme
+#+html_head: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1/new.min.css">
+#+html_head: <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+
+* Table of Contents                                    :noexport:
 :PROPERTIES:
 :TOC:      :include all :depth 2
 :END:
@@ -58,7 +62,7 @@
   - [[#fair-and-code--share-location--code-license--doi-by-level][FAIR and code + share location + code license + DOI by level]]
 :END:
 
-* requirements
+* requirements                                         :noexport:
 This document is written in [[https://www.gnu.org/software/emacs/][emacs']] [[https://orgmode.org/][org-mode]], and is a [[https://en.wikipedia.org/wiki/Literate_programming][literate programme]].
 
 We use a recent (>4.0.0) version of R with many packages in the tidyverse, most importantly ggplot2.
@@ -80,7 +84,7 @@ We use tidylog in some cases to make sure the transformations are doing what we 
   # install.packages("tidylog")
 #+end_src
 
-* read in the data
+* read in the data                                     :noexport:
 #+begin_src R :results none
   raw <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
                   trim_ws = TRUE, col_names = TRUE)
@@ -94,7 +98,7 @@ We use tidylog in some cases to make sure the transformations are doing what we 
   glimpse(dat)
 #+end_src
 
-* quick exploratory plots
+* quick exploratory plots                              :noexport:
 ** plot the answers to a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
   dat |>
@@ -120,7 +124,7 @@ We use tidylog in some cases to make sure the transformations are doing what we 
 #+RESULTS:
 [[file:imgs/data_collection.png]]
 
-* tidy the data
+* tidy the data                                        :noexport:
 ** tidy up all multiselect answers so they can be split up if desired
 inspect all unique values in a variable
 #+begin_src R :results none
@@ -514,7 +518,7 @@ contact me?
 #+RESULTS:
 [[file:imgs/sankey_FAIR_code.png]]
 
-* COMMENT try out alluvial
+* COMMENT try out alluvial                             :noexport:
 alluvial needs frequencies or numbers in the data
 #+begin_src R
 
