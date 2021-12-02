@@ -12,10 +12,17 @@ The goals of the survey were:
 * requirements
 This document is written in [[https://www.gnu.org/software/emacs/][emacs']] [[https://orgmode.org/][org-mode]], and is a [[https://en.wikipedia.org/wiki/Literate_programming][literate programme]].
 
-We use a recent (>4.0.0) version of R with many packages in the tidyverse, most importantly ggplot2.
+We use a recent (>4.0.0) version of R with many packages in the [[https://www.tidyverse.org/][tidyverse]], most importantly [[ggplot2.tidyverse.org/][ggplot2]].
 
-The ggsankey development package is installed from github.
+The [[https://github.com/davidsjoberg/ggsankey][ggsankey]] development package is installed from github.
 
-We also tried out ggalluvial, but did not like it as much as the sankey graphs.
+We also tried out [[https://github.com/corybrunson/ggalluvial][ggalluvial]], but did not like it as much as the sankey graphs.
 
-We use tidylog in some cases to make sure the transformations are doing what we hope they do. Commands that use this package are prepended with ~tidylog::.~
+We use [[https://github.com/elbersb/tidylog][tidylog ]]in some cases to make sure the transformations are doing what we hope they do. Commands that use this package are prepended with ~tidylog::.~
+
+* files
+- [[file:dat/]] is a directory that contains the survey data exported to csv. *NOTE*: we excluded this from this repository for privacy's sake!
+- [[file:imgs/]] is a directory that contains all the output images. *NOTE*: this is also excluded from the repository!
+- [[file:out/]] is a directory containing intermediate outputs, such as rds files. *NOTE*: this is also excluded!
+- [[file:processsing.org]] reads in the raw data and cleans it up
+- [[file:report.org]] generates a report with the appropriate graphs for all the questions in the survey
