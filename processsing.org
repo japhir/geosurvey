@@ -1,0 +1,230 @@
+#+title: data steward survey 2021 --- processing & scratchpad
+# this sets the properties for all R source code blocks, so they are all related to the session
+#+property: header-args:R  :session *R:survey* :exports results :results output :eval no-export
+
+* libraries
+#+begin_src R
+  # install.packages("tidyverse")
+  library(tidyverse)
+
+  #remotes::install_github("davidsjoberg/ggsankey")
+  library(ggsankey)
+  # install.packages("ggalluvial")
+  ## library(ggalluvial)
+  # install.packages("tidylog")
+
+  # install.packages("ggwordcloud")
+  library(ggwordcloud)
+#+end_src
+
+* read in the data                                     :noexport:
+#+begin_src R :results none
+  raw <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
+                  trim_ws = TRUE, col_names = TRUE)
+  dat <- raw |>
+    tidylog::filter(StartDate != "Start Date") |>
+    tidylog::filter(!stringr::str_detect(StartDate, "[{]")) |>
+    type_convert(col_types = "TTccidcT?????????????????????????????????????????????????????????????") |>
+    tidylog::mutate(Finished = ifelse(Finished == "True", TRUE, FALSE),
+                    Consent = ifelse(Consent == "Yes", TRUE, FALSE))
+
+  glimpse(dat)
+#+end_src
+
+* read in the questions/types
+Unfortunately, I had to make this manually. It's necessary for the plot titles and such.
+#+begin_src R
+  Qs <- read_csv("dat/survey_questions.csv") |>
+     mutate(clarification = ifelse(is.na(clarification), "", clarification))
+#+end_src
+
+* quick exploratory plots                              :noexport:
+** plot the answers to a single-select question
+#+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=Contact)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/contact.png]]
+
+** plot the answer to a multi-select question
+#+begin_src R :results output graphics file :file imgs/data_collection.png :width 600 :height 200
+  dat |>
+    # in this case one of the options has a comma, so we cannot split by , automatically :(
+    mutate(`Data Collection` = str_replace(`Data Collection`,
+                                           fixed("Measurements from a machine (e.g. camera, spectrometer, GPS/GNSS device, etc)"), "Measurements from a machine")) |>
+    # this splits the multiple awnswers and puts them all in their own row, copying over the rest of the columns
+    separate_rows(`Data Collection`, sep = ",") |>
+    ggplot(aes(y = `Data Collection`)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/data_collection.png]]
+
+* tidy the data                                        :noexport:
+** tidy up all multiselect answers so they can be split up if desired
+inspect all unique values in a variable
+#+begin_src R :results none
+  dat |> distinct(`Data Types`)
+#+end_src
+
+Tidy up the multiselect answers (remove parentheses and commas)
+#+begin_src R :results none
+  dat <-
+    dat |>
+    # get rid of examples
+    tidylog::mutate(`Data Types` = str_replace_all(`Data Types`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "machine ,", "machine,")) |>
+    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "\\(.*\\)", "")) |>
+    # this has Yes, answers everywhere, just replace the , with a :
+    tidylog::mutate(`Data Re-use` = str_replace_all(`Data Re-use`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Data Backup` = str_replace_all(`Data Backup`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, ", I use", "; I use")) |>
+    tidylog::mutate(`Metadata Provided` = str_replace_all(`Metadata Provided`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, ",", ":")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "No,", "No:")) |>
+    tidylog::mutate(`Storage` = str_replace_all(`Storage`, ", namely", "; namely")) |>
+    # personal data section skipped, no answers on my end
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: "))
+#+end_src
+
+Doing the actual split results in way too many rows, messing up the counts.
+Thus it needs to be done separately for each plot?
+
+** replace NA with hard coded "N/A" for nicer sankey diagrams
+#+begin_src R :results none
+   dat <- dat |>
+    tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
+#+end_src
+
+** clean up research guidelines
+Turns out we messed this question up a bit
+#+begin_src R :results none
+  distinct(dat, `Research Guidelines`)
+#+end_src
+
+#+begin_src R :results none
+  dat <- dat |>
+    mutate(`Research Guidelines` = `Research Guidelines` |>
+             str_replace_all("specific ", "specific") |>
+             str_replace_all("^No$", "No: I don't know any guidelines") |>
+             str_replace_all("^I don't know any guidelines", "No: I don't know any guidelines") |>
+             str_replace_all(",I don't know any guidelines", ",No: I don't know any guidelines"))
+  dat |>
+    distinct(`Research Guidelines`)
+#+end_src
+
+** export cleaned up data
+#+begin_src R
+  dat |>
+    write_rds("out/tidy_survey.rds")
+#+end_src
+
+* try out sankey diagrams
+** data types and collection
+#+begin_src R :results output graphics file :file imgs/sankey_data.png :width 700
+  dat |>
+    separate_rows(`Data Collection`, `Data Types`, sep = ",") |>
+    make_long(`Data Types`, `Data Collection`) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = .6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_data.png]]
+
+** open data
+#+begin_src R :results output graphics file :file imgs/sankey_open_data.png :width 800
+  dat |>
+    separate_rows(`Open Data Formats`, `Conversion`, sep = ",") |>
+    make_long(`Open Data Formats`, `Conversion`) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_open_data.png]]
+
+** code and versioning
+#+begin_src R :results output graphics file :file imgs/sankey_open_code.png :width 800
+  dat |>
+    separate_rows(`Skip Code`, sep = ",") |>
+    separate_rows(`Versioning`, sep = ",") |>
+    make_long(`Skip Code`, `Versioning`) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_open_code.png]]
+
+** FAIR and storage, grouped by level
+#+begin_src R :results output graphics file :file imgs/sankey_FAIR_data.png :width 800
+  dat |>
+    separate_rows(`Publication location`, sep = ",") |>
+    separate_rows(`Code License`, sep = ",") |>
+    separate_rows(`Storage`, sep = ",") |>
+    make_long(`FAIR Application`, `Storage`, Contact) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_FAIR_data.png]]
+
+** FAIR and code + share location + code license + DOI by level
+#+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
+  dat |>
+    separate_rows(`Code License`, sep = ",") |>
+    separate_rows(`Versioning`, sep = ",") |>
+    separate_rows(`Publication location`, sep = ",") |>
+    make_long(`FAIR Application`, `Skip Code`, `Publication location`, `Code License`, `Code DOI`, Contact) |>
+    ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+    geom_sankey(flow.alpha = 0.6) +
+    geom_sankey_text(aes(label = node), size = 3.5, hjust = 0) +
+    theme_sankey() +
+    theme(legend.pos = "none", axis.title.x = element_blank())
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_FAIR_code.png]]
+
+* try out alluvial                             :noexport:
+alluvial needs frequencies or numbers in the data
+
+this currently does not work.
+#+begin_src R
+  library(ggalluvial)
+  dat |>
+    ggplot(aes(axis1 = `Open Data Formats`, axis2 = `Conversion`, y = stat(count))) +
+    geom_alluvial() +
+    geom_stratum() +
+    geom_text(stat = "stratum",
+              aes(label = after_stat(stratum))) +
+    scale_x_discrete(limits = c("Survey", "Response"),
+                     expand = c(0.15, 0.05)) +
+    theme_void()
+#+end_src

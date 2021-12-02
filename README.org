@@ -1,0 +1,21 @@
+#+title: data steward survey 2021
+#+author: Ilja Kocken
+
+* description
+This is the code to generate a report for the survey we sent out in november 2021 as the team of data stewards.
+
+The goals of the survey were:
+1. establish the data literacy of the different departments
+2. put open science on the agenda of researchers
+3. find open science champions to learn from
+
+* requirements
+This document is written in [[https://www.gnu.org/software/emacs/][emacs']] [[https://orgmode.org/][org-mode]], and is a [[https://en.wikipedia.org/wiki/Literate_programming][literate programme]].
+
+We use a recent (>4.0.0) version of R with many packages in the tidyverse, most importantly ggplot2.
+
+The ggsankey development package is installed from github.
+
+We also tried out ggalluvial, but did not like it as much as the sankey graphs.
+
+We use tidylog in some cases to make sure the transformations are doing what we hope they do. Commands that use this package are prepended with ~tidylog::.~
