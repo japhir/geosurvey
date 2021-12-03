@@ -7,316 +7,42 @@
 #+html_head: <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1/new.min.css">
 #+html_head: <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
 
-** Data Types
-#+begin_src R :results output graphics file :file imgs/data_types.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Data Types`)) +
-    geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Types"], y = NULL)
-#+end_src
+# to generate these file links I:
+# navigated to imgs/ in dired
+# copied all file names over
+# block-selected all the extra info to remove it
+# s/^/[[file:imgs\//
+# s/\.png$/\.png]]
 
-#+RESULTS:
-[[file:imgs/data_types.png]]
-
-** Data Collection
-#+begin_src R :results output graphics file :file imgs/Data Collection.png :width 600 :height 200
-  dat |>
-    separate_rows(`Data Collection`, sep = ",") |>
-    ggplot(aes(y=`Data Collection`)) +
-    geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Collection"], y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Data Collection.png]]
-
-** Data Re-use
-#+begin_src R :results output graphics file :file imgs/Data Re-use.png :width 600 :height 200
-  dat |>
-    separate_rows(`Data Re-use`, sep = ",") |>
-    ggplot(aes(y=`Data Re-use`)) +
-    geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Re-use"], y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Data Re-use.png]]
-
-** Data Storage
-#+begin_src R :results output graphics file :file imgs/Data Storage.png :width 600 :height 200
-  dat |>
-    separate_rows(`Data Storage`, sep = ",") |>
-    ggplot(aes(y=`Data Storage`)) +
-    geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Storage"], y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Data Storage.png]]
-
-** Data Backup
-#+begin_src R :results output graphics file :file imgs/Data Backup.png :width 600 :height 200
-  dat |>
-    separate_rows(`Data Backup`, sep = ",") |>
-    ggplot(aes(y=`Data Backup`)) + #, fill = str_detect(`Data Backup`, "manually")
-    geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Backup"], y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Data Backup.png]]
-
-** File Structure
-#+begin_src R :results output graphics file :file imgs/File Structure.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`File Structure`)) +
-    geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "File Structure"]), y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/File Structure.png]]
-
-** FAIR Application
-#+begin_src R :results output graphics file :file imgs/FAIR Application.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`FAIR Application`)) +
-    geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "FAIR Application"]), y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/FAIR Application.png]]
-
-** Storage
-#+begin_src R :results output graphics file :file imgs/Storage.png :width 600 :height 200
-  dat |>
-    separate_rows(`Storage`, sep = ",") |>
-    ggplot(aes(y=`Storage`)) +
-    geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "Storage"]), y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Storage.png]]
-
-** Open Data Formats
-#+begin_src R :results output graphics file :file imgs/Open Data Formats.png :width 600 :height 200
-  dat |>
-    separate_rows(`Open Data Formats`, sep = ",") |>
-    ggplot(aes(y=`Open Data Formats`)) +
-    geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "Storage"]), y = NULL)
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Open Data Formats.png]]
-
-** Conversion
-#+begin_src R :results output graphics file :file imgs/Conversion.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Conversion`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Conversion.png]]
-
-** Project Replication
-#+begin_src R :results output graphics file :file imgs/Project Replication.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Project Replication`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Project Replication.png]]
-
-** Metadata Provided
-#+begin_src R :results output graphics file :file imgs/Metadata Provided.png :width 600 :height 200
-  dat |>
-    separate_rows(`Metadata Provided`, sep = ",") |>
-    ggplot(aes(y=`Metadata Provided`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Metadata Provided.png]]
-
-** Skip Code
-#+begin_src R :results output graphics file :file imgs/Skip Code.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Skip Code`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Skip Code.png]]
-
-** Versioning
-#+begin_src R :results output graphics file :file imgs/Versioning.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Versioning`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Versioning.png]]
-
-** Publication location
-#+begin_src R :results output graphics file :file imgs/Publication location.png :width 600 :height 200
-  dat |>
-    separate_rows(`Publication location`, sep = ",") |>
-    ggplot(aes(y=`Publication location`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Publication location.png]]
-
-** Code License
-#+begin_src R :results output graphics file :file imgs/Code License.png :width 600 :height 200
-  dat |>
-    separate_rows(`Code License`, sep = ",") |>
-    ggplot(aes(y=`Code License`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Code License.png]]
-
-** Code DOI
-#+begin_src R :results output graphics file :file imgs/Code DOI.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Code DOI`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Code DOI.png]]
-
-** Personal Data Bool
-#+begin_src R :results output graphics file :file imgs/Personal Data Bool.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Personal Data Bool`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Personal Data Bool.png]]
-
-** GDPR Work
-#+begin_src R :results output graphics file :file imgs/GDPR Work.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`GDPR Work`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/GDPR Work.png]]
-
-** Privacy Review DPIA
-#+begin_src R :results output graphics file :file imgs/Privacy Review DPIA.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Privacy Review DPIA`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Privacy Review DPIA.png]]
-
-** Personal Training
-#+begin_src R :results output graphics file :file imgs/Personal Training.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Personal Training`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Personal Training.png]]
-
-** Finding Privacy
-#+begin_src R :results output graphics file :file imgs/Finding Privacy.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Finding Privacy`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Finding Privacy.png]]
-
-** Neg Consequences
-#+begin_src R :results value
-  dat |>
-    filter(`Neg Consequences` != "N/A") |>
-    ## filter(!`Neg Consequences` %in% c("N/A", "n.a.", "None", "none", "None.", "N.A.", "N.a.", "n/a")) |>
-    select(`Neg Consequences`)
-    ## ggplot(aes(label=`Neg Consequences`)) +
-    ## geom_text_wordcloud()
-#+end_src
-
-** Ethic Considerations
-#+begin_src R :results value
-  dat |>
-    filter(`Ethic Considerations` != "N/A") |>
-    ## filter(!`Neg Consequences` %in% c("N/A", "n.a.", "None", "none", "None.", "N.A.", "N.a.", "n/a")) |>
-    ## ggplot(aes(label=`Ethic Considerations`)) +
-    ## geom_text_wordcloud()
-    ## geom_bar()
-    select(`Ethic Considerations`)
-#+end_src
-
-** Research Guidelines
-#+begin_src R :results output graphics file :file imgs/Research Guidelines.png :width 600 :height 200
-  dat |>
-    separate_rows(`Research Guidelines`, sep = ",") |>
-    ggplot(aes(y=`Research Guidelines`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Research Guidelines.png]]
-
-** Resources for RDM
-#+begin_src R :results output graphics file :file imgs/Resources for RDM.png :width 600 :height 200
-  dat |>
-    separate_rows(`Resources for RDM`, sep = ",") |>
-    ggplot(aes(y=`Resources for RDM`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Resources for RDM.png]]
-
-** User Data Mgmt
-#+begin_src R :results value
-  dat |>
-    select(`User Data Mgmt`)
-#+end_src
-
-** Any Questions
-#+begin_src R :results value
-  dat |>
-    filter(`Any Questions` != "N/A") |>
-    select(`Any Questions`)
-#+end_src
-
-** Contact
-#+begin_src R :results output graphics file :file imgs/Contact.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Contact`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Contact.png]]
-
-** Q36
-#+begin_src R :results output graphics file :file imgs/Q36.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=`Q36`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/Q36.png]]
+[[file:imgs/001_Consent_Consent.png]]
+[[file:imgs/002_Data Questions_Data Types.png]]
+[[file:imgs/003_Data Questions_Data Collection.png]]
+[[file:imgs/004_Data Questions_Data Re-use.png]]
+[[file:imgs/005_Data Questions_Data Storage.png]]
+[[file:imgs/006_Data Questions_Data Backup.png]]
+[[file:imgs/007_Data Questions_File Structure.png]]
+[[file:imgs/008_FAIR Data and Software_FAIR Application.png]]
+[[file:imgs/009_FAIR Data and Software_Storage.png]]
+[[file:imgs/010_FAIR Data and Software_Open Data Formats.png]]
+[[file:imgs/011_FAIR Data and Software_Conversion.png]]
+[[file:imgs/012_FAIR Data and Software_Project Replication.png]]
+[[file:imgs/013_FAIR Data and Software_Metadata Provided.png]]
+[[file:imgs/014_FAIR Code_Skip Code.png]]
+[[file:imgs/015_FAIR Code_Versioning.png]]
+[[file:imgs/016_FAIR Code_Publication location.png]]
+[[file:imgs/017_FAIR Code_Code License.png]]
+[[file:imgs/018_FAIR Code_Code DOI.png]]
+[[file:imgs/019_Personal Data_Personal Data Bool.png]]
+[[file:imgs/020_Personal Data_GDPR Work.png]]
+[[file:imgs/021_Personal Data_Privacy Review DPIA.png]]
+[[file:imgs/022_Personal Data_Sharing Private Data.png]]
+[[file:imgs/023_Personal Data_Personal Training.png]]
+[[file:imgs/024_Personal Data_Finding Privacy.png]]
+[[file:imgs/025_Ethics_Neg Consequences.png]]
+[[file:imgs/026_Ethics_Ethic Considerations.png]]
+[[file:imgs/027_Closing Questions_Research Guidelines.png]]
+[[file:imgs/028_Closing Questions_Resources for RDM.png]]
+[[file:imgs/029_Closing Questions_User Data Mgmt.png]]
+[[file:imgs/030_Closing Questions_Any Questions.png]]
+[[file:imgs/031_Closing Questions_Contact.png]]
+[[file:imgs/032_Closing Questions_Q36.png]]

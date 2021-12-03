@@ -3,7 +3,7 @@
 #+property: header-args:R  :session *R:survey* :exports results :results output :eval no-export
 
 * libraries
-#+begin_src R
+#+begin_src R :results none
   # install.packages("tidyverse")
   library(tidyverse)
 
@@ -33,36 +33,34 @@
 
 * read in the questions/types
 Unfortunately, I had to make this manually. It's necessary for the plot titles and such.
-#+begin_src R
+#+begin_src R :results none
   Qs <- read_csv("dat/survey_questions.csv") |>
      mutate(clarification = ifelse(is.na(clarification), "", clarification))
 #+end_src
 
-* quick exploratory plots                              :noexport:
-** plot the answers to a single-select question
-#+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
-  dat |>
-    ggplot(aes(y=Contact)) +
-    geom_bar()
+** did we put all the necessary columns in the file?
+#+begin_src R :results value
+  colnames(dat)[!colnames(dat) %in% Qs$column]
 #+end_src
 
 #+RESULTS:
-[[file:imgs/contact.png]]
-
-** plot the answer to a multi-select question
-#+begin_src R :results output graphics file :file imgs/data_collection.png :width 600 :height 200
-  dat |>
-    # in this case one of the options has a comma, so we cannot split by , automatically :(
-    mutate(`Data Collection` = str_replace(`Data Collection`,
-                                           fixed("Measurements from a machine (e.g. camera, spectrometer, GPS/GNSS device, etc)"), "Measurements from a machine")) |>
-    # this splits the multiple awnswers and puts them all in their own row, copying over the rest of the columns
-    separate_rows(`Data Collection`, sep = ",") |>
-    ggplot(aes(y = `Data Collection`)) +
-    geom_bar()
-#+end_src
-
-#+RESULTS:
-[[file:imgs/data_collection.png]]
+| StartDate             |
+| EndDate               |
+| Status                |
+| IPAddress             |
+| Progress              |
+| Duration (in seconds) |
+| Finished              |
+| RecordedDate          |
+| ResponseId            |
+| RecipientLastName     |
+| RecipientFirstName    |
+| RecipientEmail        |
+| ExternalReference     |
+| LocationLatitude      |
+| LocationLongitude     |
+| DistributionChannel   |
+| UserLanguage          |
 
 * tidy the data                                        :noexport:
 ** tidy up all multiselect answers so they can be split up if desired
@@ -76,33 +74,52 @@ Tidy up the multiselect answers (remove parentheses and commas)
   dat <-
     dat |>
     # get rid of examples
-    tidylog::mutate(`Data Types` = str_replace_all(`Data Types`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Types` = str_replace_all(`Data Types`, " \\([0-9A-Za-z, ]+\\)", "")) |>
     tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "machine ,", "machine,")) |>
-    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, "\\(.*\\)", "")) |>
+    tidylog::mutate(`Data Collection` = str_replace_all(`Data Collection`, " \\(.*\\)", "")) |>
     # this has Yes, answers everywhere, just replace the , with a :
     tidylog::mutate(`Data Re-use` = str_replace_all(`Data Re-use`, "Yes,", "Yes:")) |>
-    tidylog::mutate(`Data Backup` = str_replace_all(`Data Backup`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, "\\(.*\\)", "")) |>
+    # Data Storage is fine!
+    tidylog::mutate(`Data Backup` = str_replace_all(`Data Backup`, " \\(.*\\)", "")) |>
+    # File Structure = fine
+    # FAIR Application is single-select
+    tidylog::mutate(`Storage` = str_replace_all(`Storage`, ", namely", "; namely")) |>
+    tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, " \\(.*\\)", "")) |>
     tidylog::mutate(`Open Data Formats` = str_replace_all(`Open Data Formats`, ", I use", "; I use")) |>
-    tidylog::mutate(`Metadata Provided` = str_replace_all(`Metadata Provided`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, ",", ":")) |>
-    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "\\(.*\\)", "")) |>
-    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "Yes,", "Yes:")) |>
-    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "\\(.*\\)", "")) |>
+    # Conversion is good
+    # Project Replication is fine
+    tidylog::mutate(`Metadata Provided` = str_replace_all(`Metadata Provided`, " \\(.*\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, " \\([0-9A-Za-z, +]+\\)", "")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Skip Code` = str_replace_all(`Skip Code`, "No,", "No:")) |>
+    tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "\\([0-9A-Za-z, +]+\\)", "")) |>
     tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "Yes,", "Yes:")) |>
     tidylog::mutate(`Versioning` = str_replace_all(`Versioning`, "No,", "No:")) |>
-    tidylog::mutate(`Storage` = str_replace_all(`Storage`, ", namely", "; namely")) |>
-    # personal data section skipped, no answers on my end
-    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "\\(.*\\)", "")) |>
+    # Publication location is good
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "Yes,", "Yes:")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, "No,", "No:")) |>
+    tidylog::mutate(`Code License` = str_replace_all(`Code License`, " \\(.*\\)", "")) |>
+    # Code DOI is good
+    # Personal Data Bool is fine
+    tidylog::mutate(`Personal Data Bool` = str_replace_all(`Personal Data Bool`, " \\(.*\\)", "")) |>
+    # GDPR Work
+    # Privacy Review DPIA
+    # Sharing Private Data
+    # Personal Training
+    # Finding Privacy
+    # Neg Consequences
+    # Ethic Considerations
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, " \\(.*\\)", "")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "Yes,", "Yes:")) |>
-    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: "))
+    tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: ")) |>
+    tidylog::mutate(`Q36` = str_replace_all(`Q36`, " \\(.*\\)", ""))
 #+end_src
 
 Doing the actual split results in way too many rows, messing up the counts.
 Thus it needs to be done separately for each plot?
 
-** replace NA with hard coded "N/A" for nicer sankey diagrams
+** COMMENT replace NA with hard coded "N/A" for nicer sankey diagrams
+I don't like this too much, only do it for the sankey diagrams
 #+begin_src R :results none
    dat <- dat |>
     tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
@@ -117,7 +134,6 @@ Turns out we messed this question up a bit
 #+begin_src R :results none
   dat <- dat |>
     mutate(`Research Guidelines` = `Research Guidelines` |>
-             str_replace_all("specific ", "specific") |>
              str_replace_all("^No$", "No: I don't know any guidelines") |>
              str_replace_all("^I don't know any guidelines", "No: I don't know any guidelines") |>
              str_replace_all(",I don't know any guidelines", ",No: I don't know any guidelines"))
@@ -125,22 +141,220 @@ Turns out we messed this question up a bit
     distinct(`Research Guidelines`)
 #+end_src
 
+** NEXT tidy up open text entries for summaries
+I've marked all columns that could do with some cleaning up in yellow in the [[file:dat/survey_questions.ods]] file
 ** export cleaned up data
-#+begin_src R
+#+begin_src R :results none
   dat |>
     write_rds("out/tidy_survey.rds")
 #+end_src
 
-* try out sankey diagrams
+** read in cleaned up data
+#+begin_src R :results none
+  dat <- read_rds("out/tidy_survey.rds")
+#+end_src
+
+* design an approach
+** a single-select question
+#+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
+  dat |>
+    ggplot(aes(y=Contact)) +
+    geom_bar()
+#+end_src
+
+#+RESULTS:
+[[file:imgs/contact.png]]
+
+** a multi-select question
+*** prior to cleaning, figure out what to do
+#+begin_src R :results output graphics file :file imgs/data_collection.png :width 600 :height 200
+  dat |>
+    # in this case one of the options has a comma, so we cannot split by , automatically :(
+    mutate(`Data Collection` = str_replace(`Data Collection`,
+                                           fixed("Measurements from a machine (e.g. camera, spectrometer, GPS/GNSS device, etc)"), "Measurements from a machine")) |>
+    # this splits the multiple awnswers and puts them all in their own row, copying over the rest of the columns
+    separate_rows(`Data Collection`, sep = ",") |>
+    ggplot(aes(y = `Data Collection`)) +
+    geom_bar() +
+    labs(title = Qs$question[Qs$column == "Data Collection"], y = NULL)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/data_collection.png]]
+*** after cleaning
+  #+begin_src R :results output graphics file :file imgs/Data Collection.png :width 600 :height 200
+    dat |>
+      separate_rows(`Data Types`, sep = ",") |>
+      ggplot(aes(y=`Data Types`)) +
+      geom_bar() +
+      labs(title = Qs$question[Qs$column == "Data Types"], y = NULL)
+  #+end_src
+
+  #+RESULTS:
+  [[file:imgs/Data Collection.png]]
+
+** a text question
+*** with just a few distinct types of entries
+#+begin_src R :results output graphics file :file imgs/Ethic Considerations.png :width 800 :height 600
+  dat |>
+    mutate(`Ethic Considerations` = ifelse(`Ethic Considerations` %in% c("N/A",
+                                                                         "n.a.",
+                                                                         "None",
+                                                                         "none",
+                                                                         "None.",
+                                                                         "not relevant",
+                                                                         "not applicable.",
+                                                                         "Doesn't apply",
+                                                                         "-",
+                                                                         "Not applicable to my research",
+                                                                         "N.A.",
+                                                                         "N.a.",
+                                                                         "N.a",
+                                                                         "n/a"), "some form of 'Not applicable'", `Ethic Considerations`)) |>
+    ggplot(aes(y=str_wrap(`Ethic Considerations`))) +
+    ## geom_text_wordcloud()
+    geom_bar() +
+    labs(title = str_wrap(Qs$question[Qs$column == "Ethic Considerations"]), y = NULL)
+    ## distinct(`Ethic Considerations`)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Ethic Considerations.png]]
+*** with some different options
+#+begin_src R :results output graphics file :file imgs/Publication location_7_TEXT.png :width 600 :height 200
+  dat |>
+    ggplot(aes(label=str_wrap(`Publication location_7_TEXT`))) +
+    geom_text_wordcloud() +
+    ## geom_bar() +
+    labs(title = str_wrap(Qs$question[Qs$column == "Publication location_7_TEXT"]), y = NULL)
+    ## distinct(`Publication location_7_TEXT`)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Publication location_7_TEXT.png]]
+
+*** with many different options
+#+begin_src R :results output graphics file :file imgs/Neg Consequences.png :width 900 :height 700
+  dat |>
+    mutate(`Neg Consequences` = ifelse(`Neg Consequences` %in% c("N/A",
+                                                                         "n.a.",
+                                                                         "None",
+                                                                         "none",
+                                                                         "None.",
+                                                                         "not relevant",
+                                                                         "not applicable.",
+                                                                         "Doesn't apply",
+                                                                         "-",
+                                                                         "--",
+                                                                         "Not applicable to my research",
+                                                                         "N.A.",
+                                                                         "N.a.",
+                                                                         "N.a",
+                                                                         "n/a"), "some form of 'Not applicable'", `Neg Consequences`)) |>
+    ggplot(aes(label=str_wrap(`Neg Consequences`))) +
+    geom_text_wordcloud() +
+    ## geom_bar() +
+    labs(title = str_wrap(Qs$question[Qs$column == "Neg Consequences"]), y = NULL)
+    ## distinct(`Neg Consequences`)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/Neg Consequences.png]]
+
+** come up with a recipe for single-select/multiselect/text questions
+#+begin_src R
+  make_plot <- function(typ, col) {
+      if (typ == "single select") {
+        pl <- dat |>
+          ggplot(aes_string(y = glue::glue("`{col}`"))) +
+          geom_bar() +
+          labs(title = str_wrap(Qs$question[Qs$column == col]),
+               subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
+                                 str_wrap(Qs$clarification[Qs$column == col]),
+                                 NULL),
+               y = NULL)
+      } else if (typ == "multiple select") {
+        pl <- dat |>
+          separate_rows_(col, sep = ",") |>
+          ggplot(aes_string(y = glue::glue("`{col}`"))) +
+          geom_bar() +
+          labs(title = str_wrap(Qs$question[Qs$column == col]),
+               subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
+                                 str_wrap(Qs$clarification[Qs$column == col]),
+                                 NULL),
+               y = NULL)
+      } else if (typ == "text entry") {
+        # if there are few entries, just make a bar chart again
+        if ((dat |> pull(col) |> unique() |> length()) < 10) {
+          pl <- dat |>
+            ggplot(aes_string(y = glue::glue("`{col}`"))) +
+            geom_bar() +
+            labs(title = str_wrap(Qs$question[Qs$column == col]),
+                 subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
+                                   str_wrap(Qs$clarification[Qs$column == col]),
+                                   NULL),
+                 y = NULL)
+        } else {
+          pl <- dat |>
+            ggplot(aes_string(label = str_wrap(glue::glue("`{col}`"), width = 50))) +
+            geom_text_wordcloud() +
+            labs(title = str_wrap(Qs$question[Qs$column == col]),
+                 subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
+                                   str_wrap(Qs$clarification[Qs$column == col]),
+                                   NULL),
+                 y = NULL)
+        }
+      }
+      pl
+  }
+#+end_src
+
+#+RESULTS:
+
+I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-with-ggwordcloud-package-in-r/][this resource]] on making word clouds, but there were so few answers that this was not extra informative.
+
+** test out the recipe on some examples
+#+begin_src R
+  make_plot(Qs$type[[2]], Qs$column[[2]])
+
+  make_plot(Qs$type[[1]], Qs$column[[1]])
+
+  make_plot(Qs$type[[9]], Qs$column[[9]])
+  make_plot(Qs$type[[10]], Qs$column[[10]])
+#+end_src
+
+
+** make theplot for each column
+#+begin_src R :results none
+  Qs <- Qs |>
+    mutate(pl = map2(type, column, make_plot))
+#+end_src
+
+** save the plot for each column
+#+begin_src R
+  Qss <- Qs |> select(category, column, pl) |>
+    mutate(rownum = row_number()) |>
+    mutate(filename = paste0("imgs/", str_pad(rownum, side = "left", pad = "0", width = 3), "_", category, "_", column, ".png"))
+
+  walk2(Qss$filename, Qss$pl, ~ ggsave(.x, plot = .y, width = 1920, height = 1080, units = "px", dpi = 200))
+#+end_src
+
+#+RESULTS:
+: There were 12 warnings (use warnings() to see them)
+
+* try out sankey diagrams for relations between questions
 ** data types and collection
 #+begin_src R :results output graphics file :file imgs/sankey_data.png :width 700
   dat |>
-    separate_rows(`Data Collection`, `Data Types`, sep = ",") |>
+    separate_rows(`Data Collection`, sep = ",") |>
+    separate_rows(`Data Types`, sep = ",") |>
     make_long(`Data Types`, `Data Collection`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = .6) +
     geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
+    scale_x_discrete(labels = Qs$question[Qs$column %in% c("Data Types", "Data Collection")]) +
+    ## labs(title = str_wrap(Qs$question[Qs$column == "Data Types"]), y = NULL)
     theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
@@ -150,12 +364,14 @@ Turns out we messed this question up a bit
 ** open data
 #+begin_src R :results output graphics file :file imgs/sankey_open_data.png :width 800
   dat |>
-    separate_rows(`Open Data Formats`, `Conversion`, sep = ",") |>
+    separate_rows(`Open Data Formats`, sep = ",") |>
+    separate_rows(`Conversion`, sep = ",") |>
     make_long(`Open Data Formats`, `Conversion`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6) +
     geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
+    scale_x_discrete(labels = Qs$question[Qs$column %in% c("Open Data Formats", "Conversion")]) +
     theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
@@ -172,6 +388,7 @@ Turns out we messed this question up a bit
     geom_sankey(flow.alpha = 0.6) +
     geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
+    scale_x_discrete(labels = Qs$question[Qs$column %in% c("Skip Code", "Versioning")]) +
     theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 
