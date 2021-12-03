@@ -181,14 +181,14 @@ Turns out we messed this question up a bit
 ** FAIR and storage, grouped by level
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR_data.png :width 800
   dat |>
-    separate_rows(`Publication location`, sep = ",") |>
-    separate_rows(`Code License`, sep = ",") |>
+    ## separate_rows(`Code License`, sep = ",") |>
     separate_rows(`Storage`, sep = ",") |>
-    make_long(`FAIR Application`, `Storage`, Contact) |>
+    make_long(`FAIR Application`, `Storage`) |>
     ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
     geom_sankey(flow.alpha = 0.6) +
     geom_sankey_text(aes(label = node), hjust = 0) +
     theme_sankey() +
+    scale_x_discrete(labels = str_wrap(Qs$question[Qs$column %in% c("FAIR Application", "Storage")])) +
     theme(legend.pos = "none", axis.title.x = element_blank())
 #+end_src
 

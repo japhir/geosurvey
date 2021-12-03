@@ -1,10 +1,11 @@
 "category","column","question","clarification","type","has_other","logic","feedback"
-"Data Questions","Data Types","What kinds of data do you work with?",,,,,
-"Data Questions","Data Collection","How do you collect your data?",,,TRUE,,
-"Data Questions","Data Re-use","Have you ever re-used existing data for your research?",,,TRUE,,
-"Data Questions","Data Storage","Where do you store your data for ongoing projects?",,,TRUE,,
-"Data Questions","Data Backup","How do you backup your data?",,,TRUE,,
-"Data Questions","File Structure","Do you have a coordinated file and folder structure for your data that you or your research group uses?",,,,,
+"Consent","Consent","I give my consent to participate in this survey:",,"single select",FALSE,"skip remainder of survey if no","make mandatory question next time!"
+"Data Questions","Data Types","What kinds of data do you work with?",,"multiple select",,,
+"Data Questions","Data Collection","How do you collect your data?",,"multiple select",TRUE,,
+"Data Questions","Data Re-use","Have you ever re-used existing data for your research?",,"multiple select",TRUE,,
+"Data Questions","Data Storage","Where do you store your data for ongoing projects?",,"multiple select",TRUE,,
+"Data Questions","Data Backup","How do you backup your data?",,"multiple select",TRUE,,
+"Data Questions","File Structure","Do you have a coordinated file and folder structure for your data that you or your research group uses?",,"single select",,,
 "FAIR Data and Software","FAIR Application","Have you applied the FAIR (Findable, Accessible, Interoperable, and Reusable) principles to your research data and code?",,"single select",,,
 "FAIR Data and Software","Storage","Where or how do you share or publish data?",,"multiple select",TRUE,,
 "FAIR Data and Software","Open Data Formats","Are the data that you share or publish stored in open file formats?","Examples in the yes and no options are not exhaustive lists of open data formats. There are thousands of data types/formats and in many cases they need to be evaluated for their openness. We have included a ""Not Sure"" option where you can write in the file formats you use.","multiple select",TRUE,,
@@ -23,7 +24,7 @@
 "Personal Data","Personal Training","Have you ever been trained in how to handle personal data?",,"single select",,,
 "Personal Data","Finding Privacy","Where do you find information on how to handle personal data",,"multiple select",TRUE,,
 "Ethics","Neg Consequences","What negative consequences could publishing your data have?","Even if you don't work with people, think about sensitive materials, for example, looters have been known to find the exact locations of fossil finds and gone and removed specimen illegally.","text entry",,,
-"Ethics","Ethic Considerations","What considerations do you make when publishing the results of data collected from a protected group (e.g. children, LGBT, minorities, etc.)? ",,,,,"LGBTQ = minority, redunant"
+"Ethics","Ethic Considerations","What considerations do you make when publishing the results of data collected from a protected group (e.g. children, LGBT, minorities, etc.)? ",,"text entry",,,"LGBTQ = minority, redunant"
 "Closing Questions","Research Guidelines","Do you know of or use any guidelines for research data management?",,"multiple select",TRUE,,"No + I don’t know any guidelines are identical"
 "Closing Questions","Resources for RDM","Which learning resources about research data management would you find useful?",,"multiple select",TRUE,,
 "Closing Questions","User Data Mgmt","Have you developed or would you like to share a data workflow that improved how you manage research data?",,"text entry",,,
