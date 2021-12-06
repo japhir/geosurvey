@@ -19,8 +19,11 @@
 
 * read in the data                                     :noexport:
 #+begin_src R :results none
-  raw <- read_csv("dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
-                  trim_ws = TRUE, col_names = TRUE)
+  raw <- read_csv(
+    ## "dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
+    "dat/2021 Earth Sciences Data Steward Survey_December 6, 2021_02.20.csv",
+    trim_ws = TRUE, col_names = TRUE)
+
   dat <- raw |>
     tidylog::filter(StartDate != "Start Date") |>
     tidylog::filter(!stringr::str_detect(StartDate, "[{]")) |>
@@ -62,6 +65,7 @@ Unfortunately, I had to make this manually. It's necessary for the plot titles a
 | DistributionChannel   |
 | UserLanguage          |
 
+looks like I did, these are only tracking metadata which are mostly empty because we used anonymous urls to get the survey responses.
 * tidy the data                                        :noexport:
 ** tidy up all multiselect answers so they can be split up if desired
 inspect all unique values in a variable
@@ -143,6 +147,24 @@ Turns out we messed this question up a bit
 
 ** NEXT tidy up open text entries for summaries
 I've marked all columns that could do with some cleaning up in yellow in the [[file:dat/survey_questions.ods]] file
+
+** filter out people who did not give consent
+#+begin_src R
+  dat <- dat |>
+     tidylog::filter(!Consent | !is.na(Consent)) # no consent or not filled out
+#+end_src
+
+** filter out people who did not fill out any of the questions
+#+begin_src R
+  empty <- dat |>
+    mutate(across(.cols = `Data Types`:Q36_1_TEXT, .fns = is.na)) %>%
+    mutate(allcols = rowSums(select(., `Data Types`:Q36_1_TEXT)) ==
+             colnames(dat |> select(`Data Types`:Q36_1_TEXT)) |> length())
+
+  dat <- dat |>
+    tidylog::filter(!ResponseId %in% empty$ResponseId[empty$allcols])
+#+end_src
+
 ** export cleaned up data
 #+begin_src R :results none
   dat |>
@@ -155,6 +177,86 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
 #+end_src
 
 * design an approach
+** get an overview of survey respondents
+Some of these will be used to filter out non-real participants from the survey results.
+*** did people complete the survey?
+#+begin_src R :results output graphics file :file imgs/responses.png :width 800
+  dat |>
+    arrange(RecordedDate) |>
+    ## tidylog::filter(!is.na(Consent)) |> # 9 people didn't give consent and then didn't fill anything out
+    ## tidylog::filter(`Duration (in seconds)` < 60 * 60) |> # 6 more took longer than an hour
+    ## tidylog::filter(Progress > 50) |>  # 9 remaining people were less than 50% complete
+    ggplot(aes(x = StartDate, xend = EndDate, y = `Duration (in seconds)` / 60, colour = Progress)) +
+    geom_segment(aes(yend = `Duration (in seconds)` / 60, group = ResponseId), size = 1.5) +
+    geom_point(aes(x = RecordedDate)) +
+    scale_colour_viridis_c(direction = -1) +
+    labs(y = "Duration (in minutes)")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/responses.png]]
+*** how long did people actually take to fill out the survey?
+#+begin_src R :results output graphics file :file imgs/duration.png :width 800
+  dat |>
+    ggplot(aes(x = `Duration (in seconds)`/60)) +
+    geom_histogram() +
+    geom_vline(xintercept = median(dat$`Duration (in seconds)`) / 60) +
+    labs(x = "Duration (in minutes)")
+#+end_src
+
+#+RESULTS:
+[[file:imgs/duration.png]]
+
+The people who finished filling out the survey took about 10.28 minutes!
+
+#+begin_src R :results none
+  median(dat$`Duration (in seconds)`) / 60
+#+end_src
+
+#+begin_src R :results none
+  getmode <- function(v) {
+     uniqv <- unique(v)
+     uniqv[which.max(tabulate(match(v, uniqv)))]
+  }
+
+  getmode(dat$`Duration (in seconds)`) / 60
+#+end_src
+
+with a mode of about 6 minutes.
+
+*** did the partially complete cases give useful input?
+#+begin_src R :results none
+  dat |>
+    tidylog::filter(!Finished) |>
+    select(Consent:Q36_1_TEXT) |>
+    as.data.frame() |>
+    print()
+#+end_src
+
+there are some real answers in there! So let's keep those for now.
+*** what to do with people who did give consent but then didn't fill out anything else?
+#+begin_src R :results none
+  dat |>
+    tidylog::filter(is.na(`Data Types`)) |>
+    select(Consent:Q36_1_TEXT) |>
+    as.data.frame() |>
+    print()
+#+end_src
+
+that's 8 rows with only NA's, we filter them out
+
+*** how many people did we reach and what status did they have?
+#+begin_src R :results output graphics file :file imgs/contact_stacked.png :width 600 :height 150
+  dat |>
+    ggplot(aes(x = "Contact", fill=Contact)) +
+    geom_bar() +
+    coord_flip() +
+    labs(x = NULL) +
+    labs(title = str_wrap(Qs$question[Qs$column == "Contact"]))
+#+end_src
+
+#+RESULTS:
+[[file:imgs/contact_stacked.png]]
 ** a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
   dat |>
@@ -164,7 +266,6 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
 
 #+RESULTS:
 [[file:imgs/contact.png]]
-
 ** a multi-select question
 *** prior to cleaning, figure out what to do
 #+begin_src R :results output graphics file :file imgs/data_collection.png :width 600 :height 200
@@ -323,8 +424,9 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
   make_plot(Qs$type[[10]], Qs$column[[10]])
 #+end_src
 
+#+RESULTS:
 
-** make theplot for each column
+** make the plot for each column
 #+begin_src R :results none
   Qs <- Qs |>
     mutate(pl = map2(type, column, make_plot))
@@ -340,7 +442,7 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
 #+end_src
 
 #+RESULTS:
-: There were 12 warnings (use warnings() to see them)
+: There were 13 warnings (use warnings() to see them)
 
 * try out sankey diagrams for relations between questions
 ** data types and collection
