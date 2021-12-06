@@ -24,5 +24,5 @@ We use [[https://github.com/elbersb/tidylog][tidylog ]]in some cases to make sur
 - [[file:dat/]] is a directory that contains the survey data exported to csv. *NOTE*: we excluded this from this repository for privacy's sake!
 - [[file:imgs/]] is a directory that contains all the output images. *NOTE*: this is also excluded from the repository!
 - [[file:out/]] is a directory containing intermediate outputs, such as rds files. *NOTE*: this is also excluded!
-- [[file:processsing.org]] reads in the raw data and cleans it up
+- [[file:processing.org]] reads in the raw data and cleans it up
 - [[file:report.org]] generates a report with the appropriate graphs for all the questions in the survey
