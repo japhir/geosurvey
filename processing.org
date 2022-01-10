@@ -18,7 +18,8 @@
 #+end_src
 
 * read in the data                                     :noexport:
-#+begin_src R :results none
+** just the ES survey results
+#+begin_src R :results none :eval never
   raw <- read_csv(
     ## "dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
     "dat/2021 Earth Sciences Data Steward Survey_December 6, 2021_02.20.csv",
@@ -34,6 +35,53 @@
   glimpse(dat)
 #+end_src
 
+** read in all the departmental files at once
+list the files
+#+begin_src R
+  dat <- tibble(file = list.files("dat", pattern = "^2021_fall_results_[A-Z]{2,}.csv"))
+#+end_src
+
+#+RESULTS:
+
+then read them in
+#+begin_src R :results none
+  dat <- dat |>
+    mutate(department = case_when(str_detect(file, "ES") ~ "Earth Sciences",
+                                  str_detect(file, "FG") ~ "Physical Geography",
+                                  str_detect(file, "SGPL") ~ "Human Geography\nand Spatial Planning",
+                                  str_detect(file, "SD") ~ "Sustainable Development",
+                                  TRUE ~ NA_character_)) |>
+    mutate(raw = map(paste0("dat/", file), read_csv, na = c("N/A"), trim_ws = TRUE, col_names = TRUE))
+#+end_src
+
+fix column names
+#+begin_src R
+  dat$raw[[1]] <- rename(dat$raw[[1]],
+                         `Researcher Level` = Contact,
+                         `Researcher Level_7_TEXT` = Contact_7_TEXT,
+                         Contact = Q36,
+                         Contact_1_TEXT = Q36_1_TEXT)
+
+  dat$raw[[2]] <- rename(dat$raw[[2]],
+                         `Researcher Level` = Contact,
+                         `Researcher Level_7_TEXT` = Contact_7_TEXT,
+                         Contact = Q39,
+                         Contact_1_TEXT = Q39_1_TEXT)
+#+end_src
+
+#+RESULTS:
+
+unnest them and clean 'em up
+#+begin_src R :results none
+  dat <- dat |>
+    unnest(raw) |>
+    tidylog::filter(StartDate != "Start Date") |> # remove first row
+    tidylog::filter(!stringr::str_detect(StartDate, "[{]")) |> # remove row with no data
+    type_convert() |>
+    tidylog::mutate(Finished = ifelse(Finished == "True", TRUE, FALSE), # convert to booleans
+                    Consent = ifelse(Consent == "Yes", TRUE, FALSE))
+#+end_src
+
 * read in the questions/types
 Unfortunately, I had to make this manually. It's necessary for the plot titles and such.
 #+begin_src R :results none
@@ -47,6 +95,8 @@ Unfortunately, I had to make this manually. It's necessary for the plot titles a
 #+end_src
 
 #+RESULTS:
+| file                  |
+| department            |
 | StartDate             |
 | EndDate               |
 | Status                |
@@ -116,19 +166,11 @@ Tidy up the multiselect answers (remove parentheses and commas)
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, " \\(.*\\)", "")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "Yes,", "Yes:")) |>
     tidylog::mutate(`Research Guidelines` = str_replace_all(`Research Guidelines`, "No,", "No: ")) |>
-    tidylog::mutate(`Q36` = str_replace_all(`Q36`, " \\(.*\\)", ""))
+    tidylog::mutate(`Contact` = str_replace_all(`Contact`, " \\(.*\\)", ""))
 #+end_src
 
 Doing the actual split results in way too many rows, messing up the counts.
 Thus it needs to be done separately for each plot?
-
-** COMMENT replace NA with hard coded "N/A" for nicer sankey diagrams
-I don't like this too much, only do it for the sankey diagrams
-#+begin_src R :results none
-   dat <- dat |>
-    tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
-#+end_src
-
 ** clean up research guidelines
 Turns out we messed this question up a bit
 #+begin_src R :results none
@@ -144,6 +186,21 @@ Turns out we messed this question up a bit
   dat |>
     distinct(`Research Guidelines`)
 #+end_src
+** there are some inconsistent selection options (where individual departments use different capitalization)
+#+begin_src R
+  dat <- dat |>
+    tidylog::mutate(`Storage` = str_replace_all(`Storage`, "Field Specific", "Field-Specific"))
+#+end_src
+
+#+RESULTS:
+: mutate: changed 36 values (13%) of 'Storage' (0 new NA)
+
+** COMMENT replace NA with hard coded "N/A" for nicer sankey diagrams
+I don't like this too much, only do it for the sankey diagrams
+#+begin_src R :results none :eval never
+   dat <- dat |>
+    tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
+#+end_src
 
 ** NEXT tidy up open text entries for summaries
 I've marked all columns that could do with some cleaning up in yellow in the [[file:dat/survey_questions.ods]] file
@@ -154,16 +211,44 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
      tidylog::filter(!Consent | !is.na(Consent)) # no consent or not filled out
 #+end_src
 
+#+RESULTS:
+: filter: removed 40 rows (14%), 243 rows remaining
+
 ** filter out people who did not fill out any of the questions
 #+begin_src R
   empty <- dat |>
-    mutate(across(.cols = `Data Types`:Q36_1_TEXT, .fns = is.na)) %>%
-    mutate(allcols = rowSums(select(., `Data Types`:Q36_1_TEXT)) ==
-             colnames(dat |> select(`Data Types`:Q36_1_TEXT)) |> length())
+    mutate(across(.cols = `Data Types`:Contact_1_TEXT, .fns = is.na)) %>%
+    mutate(allcols = rowSums(select(., `Data Types`:Contact_1_TEXT)) ==
+             colnames(dat |> select(`Data Types`:Contact_1_TEXT)) |> length())
 
   dat <- dat |>
     tidylog::filter(!ResponseId %in% empty$ResponseId[empty$allcols])
 #+end_src
+
+#+RESULTS:
+: filter: removed 43 rows (18%), 200 rows remaining
+
+** get rid of the capitalization differences between the different surveys
+:PROPERTIES:
+:CREATED:  [2022-01-10 Mon 11:49]
+:END:
+#+begin_src R
+  dat <- dat |>
+    tidylog::mutate(across(c(`Data Types`, `Data Collection`, `Data Storage`,
+                             `Data Backup`, `File Structure`, `Storage`, `Code DOI`),
+                           str_to_lower))
+#+end_src
+
+#+RESULTS:
+: mutate: changed 199 values (>99%) of 'Data Types' (0 new NA)
+:         changed 199 values (>99%) of 'Data Collection' (0 new NA)
+:         changed 198 values (99%) of 'Data Storage' (0 new NA)
+:         changed 199 values (>99%) of 'Data Backup' (0 new NA)
+:         changed 199 values (>99%) of 'File Structure' (0 new NA)
+:         changed 188 values (94%) of 'Storage' (0 new NA)
+:         changed 114 values (57%) of 'Code DOI' (0 new NA)
+
+Data Types has changed capitalization within SD and SGPL
 
 ** export cleaned up data
 #+begin_src R :results none
@@ -171,7 +256,7 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
     write_rds("out/tidy_survey.rds")
 #+end_src
 
-** read in cleaned up data
+* read in cleaned up data
 #+begin_src R :results none
   dat <- read_rds("out/tidy_survey.rds")
 #+end_src
@@ -190,7 +275,8 @@ Some of these will be used to filter out non-real participants from the survey r
     geom_segment(aes(yend = `Duration (in seconds)` / 60, group = ResponseId), size = 1.5) +
     geom_point(aes(x = RecordedDate)) +
     scale_colour_viridis_c(direction = -1) +
-    labs(y = "Duration (in minutes)")
+    labs(y = "Duration (in minutes)") +
+    facet_grid(rows = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -198,10 +284,11 @@ Some of these will be used to filter out non-real participants from the survey r
 *** how long did people actually take to fill out the survey?
 #+begin_src R :results output graphics file :file imgs/duration.png :width 800
   dat |>
-    ggplot(aes(x = `Duration (in seconds)`/60)) +
-    geom_histogram() +
+    ggplot(aes(x = `Duration (in seconds)`/60, fill = department)) +
+    geom_histogram(binwidth = 10) +
     geom_vline(xintercept = median(dat$`Duration (in seconds)`) / 60) +
-    labs(x = "Duration (in minutes)")
+    labs(x = "Duration (in minutes)") +
+    coord_cartesian(xlim = c(-10, 500))
 #+end_src
 
 #+RESULTS:
@@ -246,22 +333,23 @@ there are some real answers in there! So let's keep those for now.
 that's 8 rows with only NA's, we filter them out
 
 *** how many people did we reach and what status did they have?
-#+begin_src R :results output graphics file :file imgs/contact_stacked.png :width 600 :height 150
+#+begin_src R :results output graphics file :file imgs/contact_stacked.png :width 600 :height 250
   dat |>
-    ggplot(aes(x = "Contact", fill=Contact)) +
+    ggplot(aes(y = department, fill=Contact)) +
     geom_bar() +
-    coord_flip() +
     labs(x = NULL) +
     labs(title = str_wrap(Qs$question[Qs$column == "Contact"]))
 #+end_src
 
 #+RESULTS:
 [[file:imgs/contact_stacked.png]]
+
 ** a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
   dat |>
     ggplot(aes(y=Contact)) +
-    geom_bar()
+    geom_bar() +
+    facet_grid(cols = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -277,7 +365,8 @@ that's 8 rows with only NA's, we filter them out
     separate_rows(`Data Collection`, sep = ",") |>
     ggplot(aes(y = `Data Collection`)) +
     geom_bar() +
-    labs(title = Qs$question[Qs$column == "Data Collection"], y = NULL)
+    labs(title = Qs$question[Qs$column == "Data Collection"], y = NULL) +
+    facet_grid(cols = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -288,7 +377,8 @@ that's 8 rows with only NA's, we filter them out
       separate_rows(`Data Types`, sep = ",") |>
       ggplot(aes(y=`Data Types`)) +
       geom_bar() +
-      labs(title = Qs$question[Qs$column == "Data Types"], y = NULL)
+      labs(title = Qs$question[Qs$column == "Data Types"], y = NULL) +
+      facet_grid(cols = vars(department))
   #+end_src
 
   #+RESULTS:
@@ -315,8 +405,8 @@ that's 8 rows with only NA's, we filter them out
     ggplot(aes(y=str_wrap(`Ethic Considerations`))) +
     ## geom_text_wordcloud()
     geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "Ethic Considerations"]), y = NULL)
-    ## distinct(`Ethic Considerations`)
+    labs(title = str_wrap(Qs$question[Qs$column == "Ethic Considerations"]), y = NULL) +
+    facet_grid(cols = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -327,8 +417,8 @@ that's 8 rows with only NA's, we filter them out
     ggplot(aes(label=str_wrap(`Publication location_7_TEXT`))) +
     geom_text_wordcloud() +
     ## geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "Publication location_7_TEXT"]), y = NULL)
-    ## distinct(`Publication location_7_TEXT`)
+    labs(title = str_wrap(Qs$question[Qs$column == "Publication location_7_TEXT"]), y = NULL) +
+    facet_grid(cols = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -355,8 +445,8 @@ that's 8 rows with only NA's, we filter them out
     ggplot(aes(label=str_wrap(`Neg Consequences`))) +
     geom_text_wordcloud() +
     ## geom_bar() +
-    labs(title = str_wrap(Qs$question[Qs$column == "Neg Consequences"]), y = NULL)
-    ## distinct(`Neg Consequences`)
+    labs(title = str_wrap(Qs$question[Qs$column == "Neg Consequences"]), y = NULL) +
+    facet_grid(cols = vars(department))
 #+end_src
 
 #+RESULTS:
@@ -373,7 +463,8 @@ that's 8 rows with only NA's, we filter them out
                subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
                                  str_wrap(Qs$clarification[Qs$column == col]),
                                  NULL),
-               y = NULL)
+               y = NULL) +
+          facet_grid(cols = vars(department), scales = "free_x")
       } else if (typ == "multiple select") {
         pl <- dat |>
           separate_rows_(col, sep = ",") |>
@@ -383,19 +474,21 @@ that's 8 rows with only NA's, we filter them out
                subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
                                  str_wrap(Qs$clarification[Qs$column == col]),
                                  NULL),
-               y = NULL)
+               y = NULL) +
+          facet_grid(cols = vars(department), scales = "free_x")
       } else if (typ == "text entry") {
         # if there are few entries, just make a bar chart again
-        if ((dat |> pull(col) |> unique() |> length()) < 10) {
-          pl <- dat |>
-            ggplot(aes_string(y = glue::glue("`{col}`"))) +
-            geom_bar() +
-            labs(title = str_wrap(Qs$question[Qs$column == col]),
-                 subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
-                                   str_wrap(Qs$clarification[Qs$column == col]),
-                                   NULL),
-                 y = NULL)
-        } else {
+        ## if ((dat |> pull(col) |> unique() |> length()) < 10) {
+        ##   pl <- dat |>
+        ##     ggplot(aes_string(y = glue::glue("`{col}`"))) +
+        ##     geom_bar() +
+        ##     labs(title = str_wrap(Qs$question[Qs$column == col]),
+        ##          subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
+        ##                            str_wrap(Qs$clarification[Qs$column == col]),
+        ##                            NULL),
+        ##          y = NULL) +
+        ##   facet_grid(cols = vars(department), scales = "free_x")
+        ## } else {
           pl <- dat |>
             ggplot(aes_string(label = str_wrap(glue::glue("`{col}`"), width = 50))) +
             geom_text_wordcloud() +
@@ -403,8 +496,10 @@ that's 8 rows with only NA's, we filter them out
                  subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
                                    str_wrap(Qs$clarification[Qs$column == col]),
                                    NULL),
-                 y = NULL)
-        }
+                 y = NULL) +
+          facet_grid(cols = vars(department), scales = "free_x")
+      } else {
+        warning(glue::glue("Incorrect typ: {typ} selected"))
       }
       pl
   }
@@ -416,11 +511,14 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
 
 ** test out the recipe on some examples
 #+begin_src R
-  make_plot(Qs$type[[2]], Qs$column[[2]])
-
+  # single select
   make_plot(Qs$type[[1]], Qs$column[[1]])
 
+  # multiple select
+  make_plot(Qs$type[[2]], Qs$column[[2]])
   make_plot(Qs$type[[9]], Qs$column[[9]])
+
+  # other text options
   make_plot(Qs$type[[10]], Qs$column[[10]])
 #+end_src
 
@@ -442,7 +540,115 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
 #+end_src
 
 #+RESULTS:
-: There were 13 warnings (use warnings() to see them)
+: There were 50 or more warnings (use warnings() to see the first 50)
+
+* now we need to decide which questions to dive deeper into
+** backups
+do the people who make manual backups and store stuff on their own pc also use different backup services? In that case it's not too bad.
+#+begin_src R :results none
+  dat |>
+    distinct(`Data Storage`) |>
+    print(n = Inf)
+#+end_src
+
+make a plot of the data storage location, but also indicate which other answers people have indicated so that we can see which ones are potentially problematic:
+#+begin_src R
+  dat |>
+    ## tidylog::filter(str_detect(`Data Storage`, "My computer")) |>
+    separate_rows(`Data Storage`, sep = ",") |>
+    group_by(ResponseId) |>
+    mutate(n_answer = n()) |>
+    ggplot(aes(y=`Data Storage`)) +
+    geom_bar(alpha = .3) +
+    stat_count(aes(group = ResponseId, colour = as.integer(n_answer)), geom = "line") +
+    stat_count(aes(group = ResponseId, colour = as.integer(n_answer)), size = 3, geom = "point") +
+    labs(title = Qs$question[Qs$column == "Data Storage"], y = NULL)
+#+end_src
+
+We can filter by people who have their current projects only stored locally, not even on a USB-key
+
+We also want to know if they filled out contact info so we can reach out to them if possible
+#+begin_src R :results none
+  dat |>
+    ## tidylog::filter(str_detect(`Data Storage`, "My computer")) |>
+    separate_rows(`Data Storage`, sep = ",") |>
+    group_by(ResponseId) |>
+    mutate(n_answer = n()) |>
+    # how many use only their own computer?
+    tidylog::filter(n_answer == 1 && str_detect(`Data Storage`, "My computer")) |>
+    distinct(`Data Storage`, `Data Backup`, `Data Backup_3_TEXT`, ResponseId, Contact, Q36_1_TEXT) |> print(n = Inf)
+#+end_src
+
+Or people who do use local storage and do not backup automatically
+#+begin_src R :results none
+  dat |>
+    ## tidylog::filter(str_detect(`Data Storage`, "My computer")) |>
+    separate_rows(`Data Storage`, sep = ",") |>
+    group_by(ResponseId) |>
+    mutate(n_answer = n()) |>
+    # or their own computer + something else?
+    tidylog::filter(n_answer > 1) |>
+    # is it NOT backed up automatically?
+    tidylog::filter(`Data Backup` |> str_detect("automatically", negate = TRUE)) |>
+    distinct(`Data Storage`, `Data Backup`, `Data Backup_3_TEXT`, .keep_all = TRUE) |>
+    select(`Data Storage`, `Data Backup`, `Data Backup_3_TEXT`, ResponseId, Contact, Q36_1_TEXT) |>
+    print(n = Inf)
+#+end_src
+
+** versioning and publishing of code
+who isn't versioning their code?
+#+begin_src R
+  dat |>
+    tidylog::filter(Versioning |> str_detect("No:")) |>
+    count(Versioning, `Publication location`)
+#+end_src
+
+** license
+there are many people who do not assign a license to their code
+#+begin_src R
+  dat |>
+    tidylog::filter(`Code License` |> str_detect("No")) |>
+    count(`Code License`, `Publication location`)
+#+end_src
+
+if you don't publish your code, assigning a license isn't such a big deal. If you do, it would be better!
+
+** doi
+a lot of code does not have a doi associated with it
+#+begin_src R
+  dat |>
+    separate_rows(`Publication location`, sep = ",") |>
+    tidylog::filter(`Publication location` |> str_detect("not publish", negate = TRUE)) |>
+    ## tidylog::filter(`Code DOI` |> str_detect("Not?")) |>
+    count(`Publication location`, `Code DOI`)
+#+end_src
+
+
+** look at guidelines
+#+begin_src R
+  dat |>
+   distinct(`Research Guidelines_1_TEXT`) |> pull(`Research Guidelines_1_TEXT`)
+#+end_src
+
+#+begin_src R
+  dat |>
+   distinct(`Research Guidelines_2_TEXT`) |> pull(`Research Guidelines_2_TEXT`)
+#+end_src
+
+#+begin_src R
+  dat |>
+   distinct(`Research Guidelines_3_TEXT`) |> pull(`Research Guidelines_3_TEXT`)
+#+end_src
+** useful
+#+begin_src R
+  dat |>
+    distinct(`Resources for RDM_7_TEXT`) |> pull(`Resources for RDM_7_TEXT`)
+#+end_src
+** q's
+#+begin_src R
+  dat |>
+    distinct(`Any Questions`) |> pull(`Any Questions`)
+#+end_src
 
 * try out sankey diagrams for relations between questions
 ** data types and collection
