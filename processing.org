@@ -18,7 +18,7 @@
 #+end_src
 
 * read in the data                                     :noexport:
-** just the ES survey results
+** COMMENT just the ES survey results
 #+begin_src R :results none :eval never
   raw <- read_csv(
     ## "dat/2021 Earth Sciences Data Steward Survey_November 29, 2021_03.23.csv",
@@ -54,7 +54,7 @@ then read them in
     mutate(raw = map(paste0("dat/", file), read_csv, na = c("N/A"), trim_ws = TRUE, col_names = TRUE))
 #+end_src
 
-fix column names
+fix column names: they were wrongly named in orginal and Garret fixed them in his departments
 #+begin_src R
   dat$raw[[1]] <- rename(dat$raw[[1]],
                          `Researcher Level` = Contact,
@@ -192,9 +192,6 @@ Turns out we messed this question up a bit
     tidylog::mutate(`Storage` = str_replace_all(`Storage`, "Field Specific", "Field-Specific"))
 #+end_src
 
-#+RESULTS:
-: mutate: changed 36 values (13%) of 'Storage' (0 new NA)
-
 ** COMMENT replace NA with hard coded "N/A" for nicer sankey diagrams
 I don't like this too much, only do it for the sankey diagrams
 #+begin_src R :results none :eval never
@@ -202,17 +199,20 @@ I don't like this too much, only do it for the sankey diagrams
     tidylog::mutate(across(.cols = where(~ is.character(.x)), .fns = ~ replace(.x, is.na(.x), "N/A")))
 #+end_src
 
-** NEXT tidy up open text entries for summaries
-I've marked all columns that could do with some cleaning up in yellow in the [[file:dat/survey_questions.ods]] file
-
 ** filter out people who did not give consent
+how many people didn't give explicit consent, but did have useful answers to questions?
+
+nothing remains, we can filter them out.
+#+begin_src R :results none
+  dat |>
+    tidylog::filter(is.na(Consent)) |>
+    tidylog::filter(!is.na(`Data Types`))
+#+end_src
+
 #+begin_src R
   dat <- dat |>
      tidylog::filter(!Consent | !is.na(Consent)) # no consent or not filled out
 #+end_src
-
-#+RESULTS:
-: filter: removed 40 rows (14%), 243 rows remaining
 
 ** filter out people who did not fill out any of the questions
 #+begin_src R
@@ -225,9 +225,6 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
     tidylog::filter(!ResponseId %in% empty$ResponseId[empty$allcols])
 #+end_src
 
-#+RESULTS:
-: filter: removed 43 rows (18%), 200 rows remaining
-
 ** get rid of the capitalization differences between the different surveys
 :PROPERTIES:
 :CREATED:  [2022-01-10 Mon 11:49]
@@ -235,20 +232,19 @@ I've marked all columns that could do with some cleaning up in yellow in the [[f
 #+begin_src R
   dat <- dat |>
     tidylog::mutate(across(c(`Data Types`, `Data Collection`, `Data Storage`,
-                             `Data Backup`, `File Structure`, `Storage`, `Code DOI`),
+                             `Data Backup`, `File Structure`, `Storage`, `Code DOI`, `Researcher Level`),
                            str_to_lower))
 #+end_src
 
-#+RESULTS:
-: mutate: changed 199 values (>99%) of 'Data Types' (0 new NA)
-:         changed 199 values (>99%) of 'Data Collection' (0 new NA)
-:         changed 198 values (99%) of 'Data Storage' (0 new NA)
-:         changed 199 values (>99%) of 'Data Backup' (0 new NA)
-:         changed 199 values (>99%) of 'File Structure' (0 new NA)
-:         changed 188 values (94%) of 'Storage' (0 new NA)
-:         changed 114 values (57%) of 'Code DOI' (0 new NA)
 
 Data Types has changed capitalization within SD and SGPL
+
+** remove all the various ways of saying "n.a." for certain questions
+#+begin_src R
+  dat <- dat |>
+    tidylog::mutate(across(.cols = c(`Neg Consequences`, `Ethic Considerations`, `User Data Mgmt`),
+              .fns = ~ ifelse(str_detect(.x, "^[Nn][./]?[Aa].?$|^[Nn]ot [Aa]pplic(able)$|^nvt$|^[Nn]o$"), NA, .x)))
+#+end_src
 
 ** export cleaned up data
 #+begin_src R :results none
@@ -294,7 +290,7 @@ Some of these will be used to filter out non-real participants from the survey r
 #+RESULTS:
 [[file:imgs/duration.png]]
 
-The people who finished filling out the survey took about 10.28 minutes!
+The people who finished filling out the survey took about 8.13 minutes!
 
 #+begin_src R :results none
   median(dat$`Duration (in seconds)`) / 60
@@ -309,40 +305,41 @@ The people who finished filling out the survey took about 10.28 minutes!
   getmode(dat$`Duration (in seconds)`) / 60
 #+end_src
 
-with a mode of about 6 minutes.
+with a mode of about 8 minutes.
 
 *** did the partially complete cases give useful input?
 #+begin_src R :results none
   dat |>
     tidylog::filter(!Finished) |>
-    select(Consent:Q36_1_TEXT) |>
+    select(Consent:Contact_1_TEXT) |>
     as.data.frame() |>
     print()
 #+end_src
 
 there are some real answers in there! So let's keep those for now.
-*** what to do with people who did give consent but then didn't fill out anything else?
-#+begin_src R :results none
-  dat |>
-    tidylog::filter(is.na(`Data Types`)) |>
-    select(Consent:Q36_1_TEXT) |>
-    as.data.frame() |>
-    print()
-#+end_src
-
-that's 8 rows with only NA's, we filter them out
 
 *** how many people did we reach and what status did they have?
-#+begin_src R :results output graphics file :file imgs/contact_stacked.png :width 600 :height 250
+out of total of
+- earth sciences 353
+- copernicus 366
+- physical geography 141
+- human geography and spatial planning 223
+
+#+begin_src R :results output graphics file :file imgs/contact_stacked.png :width 1920 :height 1080
   dat |>
-    ggplot(aes(y = department, fill=Contact)) +
+    ggplot(aes(y = department, fill=`Researcher Level`)) +
     geom_bar() +
     labs(x = NULL) +
-    labs(title = str_wrap(Qs$question[Qs$column == "Contact"]))
+    labs(title = str_wrap(Qs$question[Qs$column == "Researcher Level"]),
+         fill = NULL,
+         x = "Number of survey participants") +
+    theme(legend.pos = "top", text = element_text(size = 28)) +
+    annotate("text", x = 90, y = 4.4, label = "total\nstaff") +
+    annotate("text", x = 90, y = "Sustainable Development", label = "/ 366") +
+    annotate("text", x = 90, y = "Physical Geography", label = "/ 141") +
+    annotate("text", x = 90, y = "Human Geography\nand Spatial Planning", label = "/ 223") +
+    annotate("text", x = 90, y = "Earth Sciences", label = "/ 353")
 #+end_src
-
-#+RESULTS:
-[[file:imgs/contact_stacked.png]]
 
 ** a single-select question
 #+begin_src R :results output graphics file :file imgs/contact.png :width 600 :height 200
@@ -490,18 +487,30 @@ that's 8 rows with only NA's, we filter them out
         ##   facet_grid(cols = vars(department), scales = "free_x")
         ## } else {
           pl <- dat |>
-            ggplot(aes_string(label = str_wrap(glue::glue("`{col}`"), width = 50))) +
-            geom_text_wordcloud() +
+            filter(!is.na(dat[, col])) |>
+            mutate(ourcol = .data[[col]] |>  str_wrap(width = 39)) |>
+            ggplot(aes(label = ourcol)) +
+            ## geom_text_wordcloud() +
+            ggrepel::geom_text_repel(aes(x = 0, y = 0),
+                                     hjust = 0, size = 12/7,
+                                     min.segment.length = Inf,
+                                     force = 100,
+                                     force_pull = 0,
+                                     max.overlaps = Inf) +
             labs(title = str_wrap(Qs$question[Qs$column == col]),
                  subtitle = ifelse(!is.na(Qs$clarification[Qs$column == col]),
                                    str_wrap(Qs$clarification[Qs$column == col]),
                                    NULL),
                  y = NULL) +
-          facet_grid(cols = vars(department), scales = "free_x")
+            facet_grid(cols = vars(department), scales = "free_x") +
+            theme(axis.text = element_blank(),
+                  panel.grid = element_blank(),
+                  axis.ticks = element_blank(),
+                  axis.title = element_blank())
       } else {
         warning(glue::glue("Incorrect typ: {typ} selected"))
       }
-      pl
+      pl + theme(text = element_text(size = 9))
   }
 #+end_src
 
@@ -520,6 +529,15 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
 
   # other text options
   make_plot(Qs$type[[10]], Qs$column[[10]])
+  make_plot(Qs$type[[14]], Qs$column[[14]])
+  make_plot(Qs$type[[15]], Qs$column[[15]])
+  make_plot(Qs$type[[17]], Qs$column[[17]])
+  make_plot(Qs$type[[21]], Qs$column[[21]])
+  make_plot(Qs$type[[25]], Qs$column[[25]])
+  make_plot(Qs$type[[27]], Qs$column[[27]])
+  make_plot(Qs$type[[30]], Qs$column[[30]])
+  make_plot(Qs$type[[34]], Qs$column[[34]]) # text too long
+
 #+end_src
 
 #+RESULTS:
@@ -532,15 +550,16 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
 
 ** save the plot for each column
 #+begin_src R
+  dev.off()
   Qss <- Qs |> select(category, column, pl) |>
     mutate(rownum = row_number()) |>
     mutate(filename = paste0("imgs/", str_pad(rownum, side = "left", pad = "0", width = 3), "_", category, "_", column, ".png"))
 
-  walk2(Qss$filename, Qss$pl, ~ ggsave(.x, plot = .y, width = 1920, height = 1080, units = "px", dpi = 200))
+  walk2(Qss$filename, Qss$pl, ~ ggsave(.x, plot = .y, width = 1920, height = 1080, units = "px"))
 #+end_src
 
 #+RESULTS:
-: There were 50 or more warnings (use warnings() to see the first 50)
+: Error in dev.off() : cannot shut down device 1 (the null device)
 
 * now we need to decide which questions to dive deeper into
 ** backups
@@ -622,7 +641,6 @@ a lot of code does not have a doi associated with it
     ## tidylog::filter(`Code DOI` |> str_detect("Not?")) |>
     count(`Publication location`, `Code DOI`)
 #+end_src
-
 
 ** look at guidelines
 #+begin_src R
