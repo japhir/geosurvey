@@ -14,7 +14,9 @@
   # install.packages("tidylog")
 
   # install.packages("ggwordcloud")
-  library(ggwordcloud)
+  ## library(ggwordcloud)
+  # no longer used, switched to simple ggrepel
+  # install.packages("ggrepel")
 #+end_src
 
 * read in the data                                     :noexport:
@@ -235,7 +237,6 @@ nothing remains, we can filter them out.
                              `Data Backup`, `File Structure`, `Storage`, `Code DOI`, `Researcher Level`),
                            str_to_lower))
 #+end_src
-
 
 Data Types has changed capitalization within SD and SGPL
 
@@ -558,8 +559,17 @@ I also found [[https://semba-blog.netlify.app/11/05/2019/wordclouds-plotting-wit
   walk2(Qss$filename, Qss$pl, ~ ggsave(.x, plot = .y, width = 1920, height = 1080, units = "px"))
 #+end_src
 
-#+RESULTS:
-: Error in dev.off() : cannot shut down device 1 (the null device)
+** COMMENT overwrite plots that didn't come out nicely
+too much text -> make a pdf version so I can pull them apart manually?
+
+In the end, easier to just look at the sheet data
+#+begin_src R
+  Qsse <- Qss |>
+    tidylog::filter(column == "Neg Consequences") |>
+    tidylog::mutate(filename = str_replace(filename, ".png", ".pdf"))
+
+  walk2(Qsse$filename, Qsse$pl, ~ ggsave(.x, plot = .y, width = 1920, height = 1080, units = "px"))
+#+end_src
 
 * now we need to decide which questions to dive deeper into
 ** backups
@@ -669,6 +679,49 @@ a lot of code does not have a doi associated with it
 #+end_src
 
 * try out sankey diagrams for relations between questions
+** data storage/backup for ongoing projects
+#+begin_src R :results output graphics file :file imgs/sankey_storage.png :width 1920 :height 1080
+  sankey_storage <- function(data, dep) {
+    data |>
+      filter(department == dep) |>
+      separate_rows(`Data Storage`, sep = ",") |>
+      ## separate_rows(`Data Backup`, sep = ",") |>
+      make_long(`Data Storage`, `Data Backup`) |>
+      ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+      geom_sankey(flow.alpha = 0.6) +
+      geom_sankey_text(aes(label = node), hjust = 0) +
+      theme_sankey() +
+      scale_x_discrete(labels = Qs$question[Qs$column %in% c("Data Storage", "Data Backup")]) +
+      theme(legend.pos = "none", axis.title.x = element_blank()) +
+      labs(title = dep)
+  }
+
+  storage_es <- dat |>
+    sankey_storage("Earth Sciences")
+
+  storage_pg <- dat |>
+    sankey_storage("Physical Geography")
+
+  storage_sd <- dat |>
+    sankey_storage("Sustainable Development")
+
+  storage_hgsp <- dat |>
+    sankey_storage("Human Geography\nand Spatial Planning")
+
+  library(patchwork)
+
+  pl_storage <- storage_es +
+    storage_pg +
+    storage_sd +
+    storage_hgsp
+  ggsave("imgs/sankey_storage.png", pl_storage, width = 1920, height = 1080, units = "px", dpi = 200)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_storage.png]]
+
+
+
 ** data types and collection
 #+begin_src R :results output graphics file :file imgs/sankey_data.png :width 700
   dat |>
@@ -686,7 +739,6 @@ a lot of code does not have a doi associated with it
 
 #+RESULTS:
 [[file:imgs/sankey_data.png]]
-
 ** open data
 #+begin_src R :results output graphics file :file imgs/sankey_open_data.png :width 800
   dat |>
@@ -737,6 +789,47 @@ a lot of code does not have a doi associated with it
 
 #+RESULTS:
 [[file:imgs/sankey_FAIR_data.png]]
+
+** Code share location
+#+begin_src R :results output graphics file :file imgs/sankey_code.png :width 800
+  sankey_code <- function(data, dep) {
+    data |>
+      filter(department == dep) |>
+      separate_rows(`Versioning`, sep = ",") |>
+      separate_rows(`Publication location`, sep = ",") |>
+      separate_rows(`Code DOI`, sep = ",") |>
+      make_long(`Versioning`, `Publication location`, `Code DOI`) |>
+      ggplot(aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node))) +
+      geom_sankey(flow.alpha = 0.6) +
+      geom_sankey_text(aes(label = node), size = 3.5, hjust = 0) +
+      theme_sankey() +
+      theme(legend.pos = "none", axis.title.x = element_blank()) +
+      labs(title = dep)
+  }
+
+  code_es <- dat |>
+    sankey_code("Earth Sciences")
+
+  code_pg <- dat |>
+    sankey_code("Physical Geography")
+
+  code_sd <- dat |>
+    sankey_code("Sustainable Development")
+
+  code_hgsp <- dat |>
+    sankey_code("Human Geography\nand Spatial Planning")
+
+  library(patchwork)
+
+  pl_code <- code_es +
+    code_pg +
+    code_sd +
+    code_hgsp
+  ggsave("imgs/sankey_code.png", pl_code, width = 1920, height = 1080, units = "px", dpi = 150)
+#+end_src
+
+#+RESULTS:
+[[file:imgs/sankey_code.png]]
 
 ** FAIR and code + share location + code license + DOI by level
 #+begin_src R :results output graphics file :file imgs/sankey_FAIR_code.png :width 800
